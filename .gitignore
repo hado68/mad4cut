@@ -13,4 +13,4 @@
 .externalNativeBuild
 .cxx
 local.properties
-src/main/java/com/example/login/NaverLoginInitializer.kt
+NaverLoginInitializer.kt
