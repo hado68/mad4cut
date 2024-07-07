@@ -15,6 +15,8 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
+import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
 import com.example.login.RetrofitClient
 import com.example.login.databinding.FragmentDashboardBinding
@@ -44,10 +46,9 @@ class DashboardFragment : Fragment() {
     // This property is only valid between onCreateView and
     // onDestroyView.
     private val binding get() = _binding!!
-    private lateinit var imageView1: ImageView
-    private lateinit var imageView2: ImageView
     private val PICK_IMAGE_REQUEST = 1
     private val imageUrls: MutableList<String> = mutableListOf()
+    private lateinit var adapter: RecyclerAdapter
     private val apiService: ApiService by lazy {
         RetrofitClient.getClient(requireContext()).create(ApiService::class.java)
     }
@@ -58,9 +59,6 @@ class DashboardFragment : Fragment() {
     ): View {
         _binding = FragmentDashboardBinding.inflate(inflater, container, false)
         val root: View = binding.root
-
-        imageView1 = binding.imageView1
-        imageView2 = binding.imageView2
         fetchImageUrls()
 
         val uploadButton = binding.imagesendbutton
@@ -141,12 +139,8 @@ class DashboardFragment : Fragment() {
                         Log.d("FetchImage", "$urls")
                         imageUrls.clear()
                         imageUrls.addAll(urls)
-                        if (imageUrls.size >= 2) {
-                            loadImageFromUrl(imageUrls[0], imageView1)
-                            loadImageFromUrl(imageUrls[1], imageView2)
-                        } else {
-                            Log.e("ImageLoad", "Not enough images to display")
-                        }
+                        adapter.notifyDataSetChanged()
+                        initRecycler()
                     }
                 } else {
                     Log.e("ImageList", "Failed to fetch image URLs")
@@ -159,29 +153,23 @@ class DashboardFragment : Fragment() {
             }
         })
     }
-    private fun loadImageFromUrl(imageUrl: String, imageView: ImageView) {
-        thread {
-            try {
-                val url = URL(imageUrl)
-                val conn = url.openConnection() as HttpURLConnection
-                conn.doInput = true
-                conn.connect()
 
-                val inputStream: InputStream = conn.inputStream
-                val bitmap = BitmapFactory.decodeStream(inputStream)
+    private fun initRecycler() {
 
-                // UI 작업은 메인 스레드에서 수행
-                Handler(Looper.getMainLooper()).post {
-                    Log.d("FetchImage", "$bitmap")
-                    imageView.setImageBitmap(bitmap)
-                }
-
-            } catch (e: MalformedURLException) {
-                e.printStackTrace()
-            } catch (e: IOException) {
-                e.printStackTrace()
+        adapter = RecyclerAdapter(imageUrls)
+        binding.recyclerview.adapter = adapter
+        binding.recyclerview.layoutManager = LinearLayoutManager(requireContext())
+        val adapter = RecyclerAdapter(imageUrls)
+        // Adapter 설정
+        binding.recyclerview.adapter = adapter
+        // layyoutManager 설정
+        binding.recyclerview.layoutManager = GridLayoutManager(requireContext(),3)
+        adapter.setItemClickListener(object : RecyclerAdapter.onItemClickListener {
+            override fun onItemClick(position: Int) {
+                //여기서 이미지 클릭시 하게될 행동 쓰기
             }
-        }
+        })
+
     }
     override fun onDestroyView() {
         super.onDestroyView()
