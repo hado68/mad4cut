@@ -66,6 +66,13 @@ dependencies {
     implementation("com.squareup.moshi:moshi-kotlin:1.11.0")
     implementation("com.squareup.okhttp3:logging-interceptor:4.2.1")
     implementation("com.airbnb.android:lottie:3.1.0")
+    implementation("com.github.bumptech.glide:glide:4.12.0")
+    implementation(libs.androidx.constraintlayout.core)
+    annotationProcessor("com.github.bumptech.glide:compiler:4.12.0")
+    implementation("com.github.bumptech.glide:glide:4.12.0")
+
+    implementation("com.github.bumptech.glide:okhttp3-integration:4.12.0")
+    implementation ("com.squareup.okhttp3:okhttp:4.9.1")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

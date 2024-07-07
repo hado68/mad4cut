@@ -13,7 +13,7 @@ import com.example.login.MainActivity
 import com.example.login.NaverLoginInitializer
 import com.example.login.RetrofitClient
 import com.example.login.databinding.FragmentLoginBinding
-import com.example.login.interfaces.LoginApiService
+import com.example.login.interfaces.ApiService
 import com.example.login.models.RegisterData
 import com.example.login.models.TokenResponse
 import com.navercorp.nid.NaverIdLoginSDK
@@ -21,16 +21,14 @@ import com.navercorp.nid.oauth.OAuthLoginCallback
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
 
 class LoginFragment : Fragment() {
 
     private var _binding: FragmentLoginBinding? = null
     private val binding get() = _binding!!
 
-    private val loginApiService: LoginApiService by lazy {
-        RetrofitClient.getClient(requireContext()).create(LoginApiService::class.java)
+    private val apiService: ApiService by lazy {
+        RetrofitClient.getClient(requireContext()).create(ApiService::class.java)
     }
 
     override fun onCreateView(
@@ -53,7 +51,7 @@ class LoginFragment : Fragment() {
                 val token = NaverIdLoginSDK.getAccessToken()
                 if (token != null) {
                     val registerData = RegisterData(token)
-                    loginApiService.sendToken(registerData).enqueue(object :
+                    apiService.sendToken(registerData).enqueue(object :
                         Callback<TokenResponse> {
                         override fun onResponse(
                             call: Call<TokenResponse>,
