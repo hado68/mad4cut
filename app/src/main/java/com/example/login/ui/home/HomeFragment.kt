@@ -27,13 +27,17 @@ import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentTransaction
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.login.R
 import com.example.login.RetrofitClient
 import com.example.login.databinding.FragmentHomeBinding
 import com.example.login.interfaces.ApiService
 import com.example.login.models.ImagesResponse
 import com.example.login.ui.dashboard.RecyclerAdapter
+import com.example.login.ui.decoration.DecorationFragment
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -126,9 +130,12 @@ class HomeFragment : Fragment() {
 
             }
         }
-
+        binding.nextButton.setOnClickListener{
+            findNavController().navigate(R.id.action_home_to_decoration)
+        }
 
     }
+
     private fun getFrontFacingCameraId(cameraManager: CameraManager): String? {
         try {
             for (cameraId in cameraManager.cameraIdList) {
@@ -364,8 +371,8 @@ class HomeFragment : Fragment() {
             val indicatorAdapter = IndicatorAdapter(imageUrls.size) { position ->
                 loadImageFromUrl(imageUrls[position], binding.backgroundImage)
             }
-            binding.recyclerview.adapter = indicatorAdapter
-            binding.recyclerview.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+            binding.indicatorRecyclerView.adapter = indicatorAdapter
+            binding.indicatorRecyclerView.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
         }
 
     private fun loadImageFromUrl(imageUrl: String, imageView: ImageView) {
