@@ -38,7 +38,7 @@ object RetrofitClient {
         }
 
         return Retrofit.Builder()
-            .baseUrl("https://9e90-223-39-176-37.ngrok-free.app")
+            .baseUrl("https://b0b1-223-39-176-107.ngrok-free.app")
             .client(client)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
