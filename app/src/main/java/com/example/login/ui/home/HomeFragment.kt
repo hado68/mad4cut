@@ -5,6 +5,7 @@ import android.content.Context.CAMERA_SERVICE
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
 import android.graphics.ImageFormat
 import android.graphics.Matrix
 import android.graphics.SurfaceTexture
@@ -41,6 +42,7 @@ import com.example.login.ui.decoration.DecorationFragment
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -131,7 +133,18 @@ class HomeFragment : Fragment() {
             }
         }
         binding.nextButton.setOnClickListener{
-            findNavController().navigate(R.id.action_home_to_decoration)
+            val bitmap = captureFragment(this@HomeFragment)
+            bitmap?.let {
+                val stream = ByteArrayOutputStream()
+                it.compress(Bitmap.CompressFormat.PNG, 100, stream)
+                val byteArray = stream.toByteArray()
+
+                val bundle = Bundle().apply {
+                    putByteArray("image_bitmap", byteArray)
+                }
+
+                findNavController().navigate(R.id.action_home_to_decoration, bundle)
+            }
         }
 
     }
@@ -399,6 +412,15 @@ class HomeFragment : Fragment() {
             }
         }
     }
+    private fun captureFragment(fragment: Fragment): Bitmap? {
+        val view = fragment.view ?: return null
+        val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        view.draw(canvas)
+        return bitmap
+    }
+
+
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null

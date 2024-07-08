@@ -4,6 +4,7 @@ import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
+import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.util.TypedValue
 import android.view.LayoutInflater
@@ -50,7 +51,10 @@ class DecorationFragment : Fragment(){
     }
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
+        arguments?.getByteArray("image_bitmap")?.let { byteArray ->
+            val bitmap = BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size)
+            binding.backgroundImage.setImageBitmap(bitmap)
+        }
         recyclerView = binding.recyclerview
         toggleButton = binding.buttonToggle
 
@@ -60,7 +64,7 @@ class DecorationFragment : Fragment(){
         initRecycler()
         recyclerView.visibility = View.VISIBLE
         isRecyclerViewVisible = true
-
+        toggleButton.setIconResource(R.drawable.arrow_down2)
         toggleButton.setOnClickListener {
             if (isRecyclerViewVisible) {
                 slideDown(recyclerView, toggleButton)
@@ -110,7 +114,7 @@ class DecorationFragment : Fragment(){
 
         animatorSet.addListener(object : AnimatorListenerAdapter() {
             override fun onAnimationEnd(animation: Animator) {
-                toggleButton.setIconResource(R.drawable.arrow_down)
+                toggleButton.setIconResource(R.drawable.arrow_down2)
             }
         })
         animatorSet.start()
@@ -133,7 +137,7 @@ class DecorationFragment : Fragment(){
         animatorSet.addListener(object : AnimatorListenerAdapter() {
             override fun onAnimationEnd(animation: Animator) {
                 recyclerView.visibility = View.INVISIBLE
-                toggleButton.setIconResource(R.drawable.arrow_up)
+                toggleButton.setIconResource(R.drawable.arrow_up2)
             }
         })
         animatorSet.start()

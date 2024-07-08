@@ -229,8 +229,7 @@ class NotificationsFragment : Fragment() {
         })
 
         adapter2 = RecyclerAdapter(imageUrls2)
-        binding.recyclerview2.adapter = adapter2
-        binding.recyclerview2.layoutManager = GridLayoutManager(requireContext(), 3)
+
         adapter2.setItemClickListener(object : RecyclerAdapter.onItemClickListener {
             override fun onItemClick(position: Int) {
                 // Handle item click for second RecyclerView
