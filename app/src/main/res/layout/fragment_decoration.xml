@@ -5,22 +5,35 @@
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent">
+        <ImageView
+            android:id="@+id/backgroundImage"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:src="@drawable/serene_landscape_vertical"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
         <com.google.android.material.button.MaterialButton
             android:id="@+id/button_toggle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Toggle RecyclerView"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:background = "#00FF0000"
+            android:icon="@drawable/arrow_down2"
+            app:iconSize="24dp"
+            app:iconTint="@android:color/black"
+            app:layout_constraintBottom_toTopOf="@id/recyclerview"
             app:layout_constraintEnd_toEndOf="parent"
-            android:layout_marginTop="16dp"/>
+            app:layout_constraintStart_toStartOf="parent" />
+
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recyclerview"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingBottom="56dp"
+            android:background="#FFFFFF"
+            android:paddingBottom="50dp"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent" />
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 </layout>
