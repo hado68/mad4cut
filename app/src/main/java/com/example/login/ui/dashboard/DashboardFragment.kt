@@ -166,10 +166,6 @@ class DashboardFragment : Fragment() {
         imageUrls.add("https://search.pstatic.net/sunny/?src=https%3A%2F%2Fw7.pngwing.com%2Fpngs%2F866%2F884%2Fpng-transparent-pokemon-x-and-y-pokemon-heartgold-and-soulsilver-pokemon-sun-and-moon-pokemon-crystal-lugia-lugia-pokemon-mammal-vertebrate-cartoon.png&type=a340")
         adapter = RecyclerAdapter(imageUrls)
         binding.recyclerview.adapter = adapter
-        binding.recyclerview.layoutManager = LinearLayoutManager(requireContext())
-        val adapter = RecyclerAdapter(imageUrls)
-        binding.recyclerview.adapter = adapter
-
 
         binding.recyclerview.layoutManager = GridLayoutManager(requireContext(),3)
         adapter.setItemClickListener(object : RecyclerAdapter.onItemClickListener {

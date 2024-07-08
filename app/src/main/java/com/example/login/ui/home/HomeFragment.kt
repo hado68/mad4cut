@@ -15,6 +15,7 @@ import android.media.ImageReader
 import android.os.Bundle
 import android.os.Environment
 import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.Surface
@@ -26,14 +27,28 @@ import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.login.RetrofitClient
 import com.example.login.databinding.FragmentHomeBinding
+import com.example.login.interfaces.ApiService
+import com.example.login.models.ImagesResponse
+import com.example.login.ui.dashboard.RecyclerAdapter
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import java.io.InputStream
 import java.io.OutputStream
+import java.net.HttpURLConnection
+import java.net.MalformedURLException
+import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.LinkedBlockingQueue
+import kotlin.concurrent.thread
 
 class HomeFragment : Fragment() {
 
@@ -60,6 +75,12 @@ class HomeFragment : Fragment() {
     private var frontCameraId: String? = null
     private lateinit var cameraManager: CameraManager  // 카메라 매니저 멤버 변수로 선언
 
+    private val imageUrls: MutableList<String> = mutableListOf()
+
+    private val apiService: ApiService by lazy {
+        RetrofitClient.getClient(requireContext()).create(ApiService::class.java)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         handler = Handler()
@@ -78,7 +99,8 @@ class HomeFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         handler = Handler()
-
+        fetchImageUrls()
+        initRecycler()
         textureView1 = binding.textureView1
         textureView2 = binding.textureView2
         textureView3 = binding.textureView3
@@ -305,7 +327,71 @@ class HomeFragment : Fragment() {
             }
         }
     }
+    private fun fetchImageUrls() {
+        val call = apiService.listFiles()
+        call.enqueue(object : Callback<ImagesResponse> {
+            override fun onResponse(call: Call<ImagesResponse>, response: Response<ImagesResponse>) {
+                if (response.isSuccessful) {
+                    response.body()?.let { imagesResponse ->
+                        val urls = imagesResponse.data.images.map { "https://b0b1-223-39-176-107.ngrok-free.app${it.url}" }
+                        Log.d("FetchImage", "$urls")
+                        imageUrls.clear()
+                        imageUrls.addAll(urls)
+                        initRecycler()
+                    }
+                } else {
+                    Log.e("ImageList", "Failed to fetch image URLs")
+                }
+            }
 
+            override fun onFailure(call: Call<ImagesResponse>, t: Throwable) {
+                t.printStackTrace()
+                Log.e("ImageList", "Failed to fetch image URLs")
+            }
+        })
+    }
+
+
+
+        private fun initRecycler() {
+            imageUrls.add("https://search.pstatic.net/common/?src=http%3A%2F%2Fblogfiles.naver.net%2FMjAyNDA2MDRfMTEg%2FMDAxNzE3NDY3OTU0NjQ3.manwzdw7qWGewwwO_hFRmbTUh19i5bw8LyreA2zoYk4g.VsLhsUk4osPUU0IxhF2z1xIXoWOyGJkyFl7C0Okkrb8g.PNG%2Fv2.PNG&type=a340")
+            imageUrls.add("https://search.pstatic.net/common/?src=http%3A%2F%2Fblogfiles.naver.net%2FMjAyNDAzMDVfMjUw%2FMDAxNzA5NjM0NDc5NjM3.ZTlyfczxfjQL_VKukur1s8AWQd4DeuO8qMnAp6mdmaMg.clBh_0nDh-Ox3uX7-zug3ezWMATU66QBQc4gRxzSpZ4g.JPEG%2FIMG_3512.jpg&type=a340")
+            imageUrls.add("https://search.pstatic.net/sunny/?src=https%3A%2F%2Fw7.pngwing.com%2Fpngs%2F885%2F946%2Fpng-transparent-groudon-darkrai-pokedex-pokemon-giratina-pokemon-seafood-fictional-character-crab.png&type=a340")
+            imageUrls.add("https://search.pstatic.net/sunny/?src=https%3A%2F%2Fi.namu.wiki%2Fi%2F1Ogotf36_OmhfkNY4gR7Mm_PqdDX8BOEU2qUKhL1SgAnYDsRBbzdS57G4SMqMxypVYDQsP0GSnOoEKD7n3JXhQ.webp&type=a340")
+            imageUrls.add("https://search.pstatic.net/common/?src=http%3A%2F%2Fblogfiles.naver.net%2FMjAyNDA0MDlfMTk1%2FMDAxNzEyNjUwMDE1NDk3.vtwekxMeNXbVniVziotwGp-OnxBi1u2LdFSpFgCKiE8g.dP2UWN2IVNTZHmSy4GYROBDgE9YbyhUsw6m7tWIOt0wg.JPEG%2Fbandicam_2024-04-09_17-06-24-112.jpg&type=a340")
+            imageUrls.add("https://search.pstatic.net/sunny/?src=https%3A%2F%2Fw7.pngwing.com%2Fpngs%2F866%2F884%2Fpng-transparent-pokemon-x-and-y-pokemon-heartgold-and-soulsilver-pokemon-sun-and-moon-pokemon-crystal-lugia-lugia-pokemon-mammal-vertebrate-cartoon.png&type=a340")
+
+            val indicatorAdapter = IndicatorAdapter(imageUrls.size) { position ->
+                loadImageFromUrl(imageUrls[position], binding.backgroundImage)
+            }
+            binding.recyclerview.adapter = indicatorAdapter
+            binding.recyclerview.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+        }
+
+    private fun loadImageFromUrl(imageUrl: String, imageView: ImageView) {
+        thread {
+            try {
+                val url = URL(imageUrl)
+                val conn = url.openConnection() as HttpURLConnection
+                conn.doInput = true
+                conn.connect()
+
+                val inputStream: InputStream = conn.inputStream
+                val bitmap = BitmapFactory.decodeStream(inputStream)
+
+                // UI 작업은 메인 스레드에서 수행
+                Handler(Looper.getMainLooper()).post {
+                    Log.d("FetchImage", "$bitmap")
+                    imageView.setImageBitmap(bitmap)
+                }
+
+            } catch (e: MalformedURLException) {
+                e.printStackTrace()
+            } catch (e: IOException) {
+                e.printStackTrace()
+            }
+        }
+    }
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
