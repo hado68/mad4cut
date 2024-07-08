@@ -1,15 +1,11 @@
 package com.example.login.ui.notifications
 
-import android.annotation.SuppressLint
-import android.app.AlertDialog
 import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
+import android.view.*
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.GridLayoutManager
 import com.example.login.R
@@ -17,7 +13,7 @@ import com.example.login.RetrofitClient
 import com.example.login.databinding.FragmentNotificationsBinding
 import com.example.login.interfaces.ApiService
 import com.example.login.models.*
-import com.example.login.ui.notifications.RecyclerAdapter
+import com.example.login.ui.dashboard.StickerAdapter
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
@@ -27,15 +23,16 @@ import retrofit2.Callback
 import retrofit2.Response
 import java.io.File
 
-class NotificationsFragment : Fragment() {
+class NotificationsFragment : Fragment(), StickerAdapter.OnItemClickListener {
 
     private var _binding: FragmentNotificationsBinding? = null
     private val binding get() = _binding!!
     private val PICK_IMAGE_REQUEST = 1
-    private val imageUrls1: MutableList<String> = mutableListOf()
-    private val imageUrls2: MutableList<String> = mutableListOf()
-    private lateinit var adapter1: RecyclerAdapter
-    private lateinit var adapter2: RecyclerAdapter
+    private val personalStickers: MutableList<Sticker> = mutableListOf()
+    private val sharedStickers: MutableList<Sticker> = mutableListOf()
+    private val combinedStickers: MutableList<Sticker> = mutableListOf()
+    private lateinit var adapter: StickerAdapter
+    private val spanCount = 3
     private val apiService: ApiService by lazy {
         RetrofitClient.getClient(requireContext()).create(ApiService::class.java)
     }
@@ -57,6 +54,7 @@ class NotificationsFragment : Fragment() {
         }
 
         initRecycler()
+        registerForContextMenu(binding.recyclerview)
         return root
     }
 
@@ -126,15 +124,12 @@ class NotificationsFragment : Fragment() {
     private fun fetchPersonalStickers() {
         val call = apiService.getPersonalStickers()
         call.enqueue(object : Callback<ApiResponse<StickerListInfo>> {
-            @SuppressLint("NotifyDataSetChanged")
             override fun onResponse(call: Call<ApiResponse<StickerListInfo>>, response: Response<ApiResponse<StickerListInfo>>) {
                 if (response.isSuccessful) {
                     response.body()?.data?.stickers?.let { stickers ->
-                        val urls = stickers.map { "https://b0b1-223-39-176-107.ngrok-free.app${it.url}" }
-                        Log.d("FetchPersonalStickers", "$urls")
-                        imageUrls1.clear()
-                        imageUrls1.addAll(urls)
-                        adapter1.notifyDataSetChanged()
+                        personalStickers.clear()
+                        personalStickers.addAll(stickers)
+                        combineStickers()
                     }
                 } else {
                     Log.e("FetchPersonalStickers", "Failed to fetch personal stickers")
@@ -151,15 +146,12 @@ class NotificationsFragment : Fragment() {
     private fun fetchSharedStickers() {
         val call = apiService.getSharedStickers()
         call.enqueue(object : Callback<ApiResponse<StickerListInfo>> {
-            @SuppressLint("NotifyDataSetChanged")
             override fun onResponse(call: Call<ApiResponse<StickerListInfo>>, response: Response<ApiResponse<StickerListInfo>>) {
                 if (response.isSuccessful) {
                     response.body()?.data?.stickers?.let { stickers ->
-                        val urls = stickers.map { "https://b0b1-223-39-176-107.ngrok-free.app${it.url}" }
-                        Log.d("FetchSharedStickers", "$urls")
-                        imageUrls2.clear()
-                        imageUrls2.addAll(urls)
-                        adapter2.notifyDataSetChanged()
+                        sharedStickers.clear()
+                        sharedStickers.addAll(stickers)
+                        combineStickers()
                     }
                 } else {
                     Log.e("FetchSharedStickers", "Failed to fetch shared stickers")
@@ -171,6 +163,21 @@ class NotificationsFragment : Fragment() {
                 Log.e("FetchSharedStickers", "Failed to fetch shared stickers")
             }
         })
+    }
+
+    private fun combineStickers() {
+        combinedStickers.clear()
+        combinedStickers.addAll(personalStickers)
+
+        val emptyCount = spanCount - (personalStickers.size % spanCount)
+        if (emptyCount != spanCount) {
+            for (i in 0 until emptyCount) {
+                combinedStickers.add(Sticker(-1L, "", false)) // Add empty stickers
+            }
+        }
+
+        combinedStickers.addAll(sharedStickers)
+        adapter.notifyDataSetChanged()
     }
 
     private fun shareSticker(stickerId: Long) {
@@ -213,66 +220,41 @@ class NotificationsFragment : Fragment() {
     }
 
     private fun initRecycler() {
-        adapter1 = RecyclerAdapter(imageUrls1)
-        binding.recyclerview1.adapter = adapter1
-        binding.recyclerview1.layoutManager = GridLayoutManager(requireContext(), 3)
-        adapter1.setItemClickListener(object : RecyclerAdapter.onItemClickListener {
-            override fun onItemClick(position: Int) {
-                // Handle item click for first RecyclerView
-                // You can add specific actions here if needed
-            }
-
-            override fun onItemLongClick(position: Int): Boolean {
-                showActionDialog(imageUrls1[position], true)
-                return true
-            }
-        })
-
-        adapter2 = RecyclerAdapter(imageUrls2)
-
-        adapter2.setItemClickListener(object : RecyclerAdapter.onItemClickListener {
-            override fun onItemClick(position: Int) {
-                // Handle item click for second RecyclerView
-                // You can add specific actions here if needed
-            }
-
-            override fun onItemLongClick(position: Int): Boolean {
-                showActionDialog(imageUrls2[position], false)
-                return true
-            }
-        })
+        adapter = StickerAdapter(combinedStickers, spanCount)
+        binding.recyclerview.adapter = adapter
+        binding.recyclerview.layoutManager = GridLayoutManager(requireContext(), spanCount)
+        adapter.setItemClickListener(this)
     }
 
-    private fun showActionDialog(imageUrl: String, isPersonal: Boolean) {
-        val builder = AlertDialog.Builder(requireContext())
-        builder.setTitle("Choose an action")
-        builder.setItems(arrayOf("Share", "Delete")) { dialog, which ->
-            when (which) {
-                0 -> {
-                    // Share the sticker
-                    val stickerId = extractStickerIdFromUrl(imageUrl)
-                    if (stickerId != null) {
-                        shareSticker(stickerId)
-                    }
-                }
-                1 -> {
-                    // Delete the sticker
-                    val stickerId = extractStickerIdFromUrl(imageUrl)
-                    if (stickerId != null) {
-                        deleteSticker(stickerId)
-                    }
-                }
+    override fun onItemClick(position: Int) {
+        // Handle item click if needed
+    }
+
+    override fun onCreateContextMenu(
+        menu: ContextMenu,
+        v: View,
+        menuInfo: ContextMenu.ContextMenuInfo?
+    ) {
+        super.onCreateContextMenu(menu, v, menuInfo)
+        activity?.menuInflater?.inflate(R.menu.context_menu, menu)
+    }
+
+    override fun onContextItemSelected(item: MenuItem): Boolean {
+        val position = item.groupId
+        val sticker = combinedStickers[position]
+        if (sticker.id == -1L) return super.onContextItemSelected(item) // Ignore empty stickers
+
+        return when (item.itemId) {
+            R.id.context_menu_share -> {
+                shareSticker(sticker.id)
+                true
             }
+            R.id.context_menu_delete -> {
+                deleteSticker(sticker.id)
+                true
+            }
+            else -> super.onContextItemSelected(item)
         }
-        builder.show()
-    }
-
-    private fun extractStickerIdFromUrl(url: String): Long? {
-        // Logic to extract sticker ID from the URL
-        // Assuming the ID is included in the URL path
-        val regex = "/stickers/(\\d+)_".toRegex()
-        val matchResult = regex.find(url)
-        return matchResult?.groupValues?.get(1)?.toLongOrNull()
     }
 
     override fun onDestroyView() {
