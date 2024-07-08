@@ -15,6 +15,7 @@ import android.media.ImageReader
 import android.os.Bundle
 import android.os.Environment
 import android.os.Handler
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.Surface
 import android.view.TextureView
@@ -100,8 +101,11 @@ class HomeFragment : Fragment() {
                 ), REQUEST_PERMISSIONS)
             } else {
                 startCameraSequence()
+
             }
         }
+
+
     }
     private fun getFrontFacingCameraId(cameraManager: CameraManager): String? {
         try {
@@ -123,6 +127,7 @@ class HomeFragment : Fragment() {
         textureView2.surfaceTextureListener = createSurfaceTextureListener(textureView2, capturedImage2)
         textureView3.surfaceTextureListener = createSurfaceTextureListener(textureView3, capturedImage3)
         textureView4.surfaceTextureListener = createSurfaceTextureListener(textureView4, capturedImage4)
+
     }
 
     private fun createSurfaceTextureListener(textureView: TextureView, capturedImage: ImageView): TextureView.SurfaceTextureListener {
@@ -130,6 +135,7 @@ class HomeFragment : Fragment() {
             override fun onSurfaceTextureAvailable(surface: SurfaceTexture, width: Int, height: Int) {
                 // TextureView가 사용 가능해지면 큐에 추가
                 textureViewQueue.offer(Pair(textureView, capturedImage))
+
             }
 
             override fun onSurfaceTextureSizeChanged(surface: SurfaceTexture, width: Int, height: Int) {}
@@ -216,12 +222,11 @@ class HomeFragment : Fragment() {
             captureBuilder.addTarget(reader.surface)
             captureBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO)
 
-            // 캡처 세션을 다시 설정하여 출력 표면을 추가합니다.
             cameraDevice!!.createCaptureSession(outputSurfaces, object : CameraCaptureSession.StateCallback() {
                 override fun onConfigured(session: CameraCaptureSession) {
                     captureSession = session
                     try {
-                        val file = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "${textureView}.jpg")
+                        val file = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "pic.jpg")
                         val readerListener = ImageReader.OnImageAvailableListener { reader ->
                             var image: Image? = null
                             try {
@@ -231,13 +236,21 @@ class HomeFragment : Fragment() {
                                 buffer.get(bytes)
                                 save(bytes, file)
                                 var bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+
+                                // 이미지를 좌우 반전
                                 val matrix = Matrix()
                                 matrix.postRotate(270f)
                                 matrix.postScale(-1f, 1f, bitmap.width / 2f, bitmap.height / 2f)
                                 bitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
-                                activity?.runOnUiThread {
+
+                                // UI 스레드에서 실행되도록 핸들러 사용
+                                handler.post {
+                                    Log.d("Debug", "Handler post is running")
                                     capturedImage.setImageBitmap(bitmap)
                                     capturedImage.visibility = View.VISIBLE
+
+                                    // TextureView 숨기기
+                                    textureView.visibility = View.GONE
                                 }
                             } catch (e: IOException) {
                                 e.printStackTrace()
@@ -252,6 +265,7 @@ class HomeFragment : Fragment() {
                                 super.onCaptureCompleted(session, request, result)
                                 cameraDevice?.close()
                                 captureSession?.close()
+
                                 startNextCameraPreview()
                             }
                         }
