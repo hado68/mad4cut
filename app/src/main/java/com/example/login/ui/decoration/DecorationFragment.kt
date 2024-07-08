@@ -1,18 +1,26 @@
 package com.example.login.ui.decoration
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
+import android.animation.AnimatorSet
+import android.animation.ObjectAnimator
 import android.os.Bundle
+import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.AnimationSet
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.GridLayoutManager
 import android.view.animation.TranslateAnimation
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.login.R
 import com.example.login.RetrofitClient
 import com.example.login.databinding.FragmentDecorationBinding
 import com.example.login.interfaces.ApiService
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 
 
 class DecorationFragment : Fragment(){
@@ -55,9 +63,9 @@ class DecorationFragment : Fragment(){
 
         toggleButton.setOnClickListener {
             if (isRecyclerViewVisible) {
-                slideDown(recyclerView)
+                slideDown(recyclerView, toggleButton)
             } else {
-                slideUp(recyclerView)
+                slideUp(recyclerView, toggleButton)
             }
             isRecyclerViewVisible = !isRecyclerViewVisible
         }
@@ -83,33 +91,51 @@ class DecorationFragment : Fragment(){
         })
 
     }
-    private fun slideUp(view: View) {
-        view.visibility = View.VISIBLE
-        val animate = TranslateAnimation(
-            0f, // fromXDelta
-            0f, // toXDelta
-            view.height.toFloat(), // fromYDelta
-            0f // toYDelta
-        )
-        animate.duration = 500
-        animate.fillAfter = true
-        view.startAnimation(animate)
+    private fun slideUp(recyclerView: View, toggleButton: MaterialButton) {
+        val displayMetrics = resources.displayMetrics
+        val px50dp = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 50f, displayMetrics)
+
+        // 리사이클러뷰 애니메이션 설정
+        val recyclerViewAnimator = ObjectAnimator.ofFloat(recyclerView, "translationY", recyclerView.height.toFloat(), 0f)
+        // 버튼 애니메이션 설정
+        val buttonAnimator = ObjectAnimator.ofFloat(toggleButton, "translationY", recyclerView.height.toFloat() - px50dp, 0f)
+
+        // 애니메이션 세트로 동시에 실행
+        val animatorSet = AnimatorSet()
+        animatorSet.playTogether(recyclerViewAnimator, buttonAnimator)
+        animatorSet.duration = 500
+
+        // 애니메이션 시작 전 가시성 설정
+        recyclerView.visibility = View.VISIBLE
+
+        animatorSet.addListener(object : AnimatorListenerAdapter() {
+            override fun onAnimationEnd(animation: Animator) {
+                toggleButton.setIconResource(R.drawable.arrow_down)
+            }
+        })
+        animatorSet.start()
     }
 
-    private fun slideDown(view: View) {
-        val animate = TranslateAnimation(
-            0f, // fromXDelta
-            0f, // toXDelta
-            0f, // fromYDelta
-            view.height.toFloat() // toYDelta
-        )
-        animate.duration = 500
-        animate.fillAfter = true
-        view.startAnimation(animate)
-        view.visibility = View.GONE
-    }
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
+    private fun slideDown(recyclerView: View, toggleButton: MaterialButton) {
+        val displayMetrics = resources.displayMetrics
+        val px50dp = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 50f, displayMetrics)
+
+        // 리사이클러뷰 애니메이션 설정
+        val recyclerViewAnimator = ObjectAnimator.ofFloat(recyclerView, "translationY", 0f, recyclerView.height.toFloat())
+        // 버튼 애니메이션 설정
+        val buttonAnimator = ObjectAnimator.ofFloat(toggleButton, "translationY", 0f, recyclerView.height.toFloat() - px50dp)
+
+        // 애니메이션 세트로 동시에 실행
+        val animatorSet = AnimatorSet()
+        animatorSet.playTogether(recyclerViewAnimator, buttonAnimator)
+        animatorSet.duration = 500
+
+        animatorSet.addListener(object : AnimatorListenerAdapter() {
+            override fun onAnimationEnd(animation: Animator) {
+                recyclerView.visibility = View.INVISIBLE
+                toggleButton.setIconResource(R.drawable.arrow_up)
+            }
+        })
+        animatorSet.start()
     }
 }

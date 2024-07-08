@@ -73,6 +73,7 @@ dependencies {
 
     implementation("com.github.bumptech.glide:okhttp3-integration:4.12.0")
     implementation ("com.squareup.okhttp3:okhttp:4.9.1")
+    implementation("com.google.android.material:material:1.8.0")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
