@@ -1,84 +1,75 @@
 package com.example.login.ui.notifications
 
-import android.view.ContextMenu
+import android.graphics.BitmapFactory
+import android.os.Handler
+import android.os.Looper
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
+import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.example.login.R
+import com.example.login.models.ImagesResponse
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+import java.io.IOException
+import java.io.InputStream
+import java.net.HttpURLConnection
+import java.net.MalformedURLException
+import java.net.URL
+import kotlin.concurrent.thread
 
-class StickerAdapter(
-    private val items: MutableList<String>,
-    private val spanCount: Int
-) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
-
-    interface OnItemClickListener {
+class StickerAdapter(val items: MutableList<String>) :
+    RecyclerView.Adapter<StickerAdapter.ViewHolder>() {
+    interface onItemClickListener {
         fun onItemClick(position: Int)
     }
-
-    private lateinit var itemClickListener: OnItemClickListener
-
-    fun setItemClickListener(itemClickListener: OnItemClickListener) {
+    private lateinit var itemClickListener: onItemClickListener
+    fun setItemClickListener(itemClickListener: onItemClickListener) {
         this.itemClickListener = itemClickListener
     }
-
-    override fun getItemViewType(position: Int): Int {
-        return if (items[position].isEmpty()) {
-            VIEW_TYPE_EMPTY
-        } else {
-            VIEW_TYPE_STICKER
-        }
+    override fun onCreateViewHolder(
+        parent: ViewGroup,
+        viewType: Int
+    ): StickerAdapter.ViewHolder {
+        val v =
+            LayoutInflater.from(parent.context).inflate(R.layout.item_recycler_gallery, parent, false)
+        return ViewHolder(v)
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
-        return if (viewType == VIEW_TYPE_STICKER) {
-            val v = LayoutInflater.from(parent.context).inflate(R.layout.item_recyclerview, parent, false)
-            StickerViewHolder(v)
-        } else {
-            val v = LayoutInflater.from(parent.context).inflate(R.layout.item_empty, parent, false)
-            EmptyViewHolder(v)
+    // 생성된 View Holder에 데이터를 바인딩 해주는 메서드
+    override fun onBindViewHolder(holder: StickerAdapter.ViewHolder, position: Int) {
+        holder.itemView.setOnClickListener {
+            itemClickListener.onItemClick(position)
         }
+        holder.bindItems(items[position])
     }
 
-    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
-        if (holder is StickerViewHolder) {
-            holder.bindItems(items[position], itemClickListener)
-        }
-    }
-
+    // 데이터의 개수를 반환하는 메서드
     override fun getItemCount(): Int {
-        return items.size
+        return items.count()
     }
+     fun updateData(newImageUrls: List<String>) {
+        items.clear()
+        items.addAll(newImageUrls)
+        notifyDataSetChanged()
+    }
+    // 화면에 표시 될 뷰를 저장하는 역할
+    // View들을 재활용 하기 위해 각 요소를 저장해두고 사용한다.
+    inner class ViewHolder(itemView: View) :
+        RecyclerView.ViewHolder(itemView) {
+        fun bindItems(items: String) {
+            val imageArea = itemView.findViewById<ImageView>(R.id.imageArea)
 
-    inner class StickerViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView), View.OnCreateContextMenuListener {
-        private val imageArea: ImageView = itemView.findViewById(R.id.imageArea)
-
-        init {
-            itemView.setOnCreateContextMenuListener(this)
-        }
-
-        fun bindItems(item: String, clickListener: OnItemClickListener) {
             Glide.with(itemView.context)
-                .load(item)
+                .load(items)
+                .diskCacheStrategy(DiskCacheStrategy.ALL)
                 .into(imageArea)
 
-            itemView.setOnClickListener {
-                clickListener.onItemClick(adapterPosition)
-            }
         }
-
-        override fun onCreateContextMenu(menu: ContextMenu, v: View?, menuInfo: ContextMenu.ContextMenuInfo?) {
-            menu.add(adapterPosition, R.id.context_menu_share, 0, "Share")
-            menu.add(adapterPosition, R.id.context_menu_delete, 1, "Delete")
-        }
-    }
-
-    inner class EmptyViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView)
-
-    companion object {
-        private const val VIEW_TYPE_STICKER = 0
-        private const val VIEW_TYPE_EMPTY = 1
     }
 }

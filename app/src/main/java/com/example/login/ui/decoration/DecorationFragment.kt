@@ -14,6 +14,7 @@ import android.util.Log
 import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.MotionEvent
+import android.view.ScaleGestureDetector
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AnimationSet
@@ -32,6 +33,7 @@ import com.example.login.RetrofitClient
 import com.example.login.databinding.FragmentDecorationBinding
 import com.example.login.interfaces.ApiService
 import com.example.login.models.ImagesResponse
+import com.example.login.models.StickerResponse
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import kotlinx.coroutines.CoroutineScope
@@ -98,7 +100,7 @@ class DecorationFragment : Fragment(){
         initRecycler()
         recyclerView.visibility = View.VISIBLE
         isRecyclerViewVisible = true
-        toggleButton.setIconResource(R.drawable.arrow_down2)
+        toggleButton.setIconResource(R.drawable.down)
         toggleButton.setOnClickListener {
             if (isRecyclerViewVisible) {
                 slideDown(recyclerView, toggleButton)
@@ -127,7 +129,6 @@ class DecorationFragment : Fragment(){
 
 
     private fun initRecycler() {
-
         adapter = RecyclerAdapter(imageUrls)
         binding.recyclerview.adapter = adapter
 
@@ -144,11 +145,11 @@ class DecorationFragment : Fragment(){
     }
     private fun fetchImageUrls() {
         val call = apiService.stickerFiles()
-        call.enqueue(object : Callback<ImagesResponse> {
-            override fun onResponse(call: Call<ImagesResponse>, response: Response<ImagesResponse>) {
+        call.enqueue(object : Callback<StickerResponse> {
+            override fun onResponse(call: Call<StickerResponse>, response: Response<StickerResponse>) {
                 if (response.isSuccessful) {
                     response.body()?.let { imagesResponse ->
-                        val urls = imagesResponse.data.images.map { "https://705a-223-39-176-104.ngrok-free.app${it.url}" }
+                        val urls = imagesResponse.data.stickers.map { "https://b732-223-39-177-253.ngrok-free.app${it.url}" }
                         Log.d("FetchImage", "$urls")
                         imageUrls.clear()
                         imageUrls.addAll(urls)
@@ -159,7 +160,7 @@ class DecorationFragment : Fragment(){
                 }
             }
 
-            override fun onFailure(call: Call<ImagesResponse>, t: Throwable) {
+            override fun onFailure(call: Call<StickerResponse>, t: Throwable) {
                 t.printStackTrace()
                 Log.e("ImageList", "Failed to fetch image URLs")
             }
@@ -178,24 +179,38 @@ class DecorationFragment : Fragment(){
         set.connect(imageView.id, ConstraintSet.TOP, binding.rootLayout.id, ConstraintSet.TOP, 60)
         set.connect(imageView.id, ConstraintSet.START, binding.rootLayout.id, ConstraintSet.START, 60)
         set.applyTo(binding.rootLayout)
+        var scaleFactor = 1.0f
+        val scaleGestureDetector = ScaleGestureDetector(requireContext(), object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
+            override fun onScale(detector: ScaleGestureDetector): Boolean {
+                scaleFactor *= detector.scaleFactor
+                scaleFactor = scaleFactor.coerceIn(0.1f, 5.0f)
+                imageView.scaleX = scaleFactor
+                imageView.scaleY = scaleFactor
+                return true
+            }
+        })
+
         imageView.setOnTouchListener { v, event ->
+            scaleGestureDetector.onTouchEvent(event)
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
                     dX = v.x - event.rawX
                     dY = v.y - event.rawY
                 }
                 MotionEvent.ACTION_MOVE -> {
-                    val newX = event.rawX + dX
-                    val newY = event.rawY + dY
-                    v.animate()
-                        .x(newX)
-                        .y(newY)
-                        .setDuration(0)
-                        .start()
-                    val params = v.layoutParams as ConstraintLayout.LayoutParams
-                    params.leftMargin = newX.toInt()
-                    params.topMargin = newY.toInt()
-                    v.layoutParams = params
+                    if (!scaleGestureDetector.isInProgress) {
+                        val newX = event.rawX + dX
+                        val newY = event.rawY + dY
+                        v.animate()
+                            .x(newX)
+                            .y(newY)
+                            .setDuration(0)
+                            .start()
+                        val params = v.layoutParams as ConstraintLayout.LayoutParams
+                        params.leftMargin = newX.toInt()
+                        params.topMargin = newY.toInt()
+                        v.layoutParams = params
+                    }
                 }
                 else -> return@setOnTouchListener false
             }
@@ -224,7 +239,7 @@ class DecorationFragment : Fragment(){
 
         animatorSet.addListener(object : AnimatorListenerAdapter() {
             override fun onAnimationEnd(animation: Animator) {
-                toggleButton.setIconResource(R.drawable.arrow_down2)
+                toggleButton.setIconResource(R.drawable.down)
             }
         })
         animatorSet.start()
@@ -247,7 +262,7 @@ class DecorationFragment : Fragment(){
         animatorSet.addListener(object : AnimatorListenerAdapter() {
             override fun onAnimationEnd(animation: Animator) {
                 recyclerView.visibility = View.INVISIBLE
-                toggleButton.setIconResource(R.drawable.arrow_up2)
+                toggleButton.setIconResource(R.drawable.up)
             }
         })
         animatorSet.start()

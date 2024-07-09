@@ -10,6 +10,7 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
+import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.example.login.R
 import retrofit2.http.Url
 import java.io.IOException
@@ -57,32 +58,12 @@ class RecyclerAdapter(val items: MutableList<String>) :
         fun bindItems(items: String) {
             val imageArea = itemView.findViewById<ImageView>(R.id.imageArea)
 
-            loadImageFromUrl(items, imageArea)
+            Glide.with(itemView.context)
+                .load(items)
+                .diskCacheStrategy(DiskCacheStrategy.ALL)
+                .into(imageArea)
 
         }
     }
-    private fun loadImageFromUrl(imageUrl: String, imageView: ImageView) {
-        thread {
-            try {
-                val url = URL(imageUrl)
-                val conn = url.openConnection() as HttpURLConnection
-                conn.doInput = true
-                conn.connect()
 
-                val inputStream: InputStream = conn.inputStream
-                val bitmap = BitmapFactory.decodeStream(inputStream)
-
-                // UI 작업은 메인 스레드에서 수행
-                Handler(Looper.getMainLooper()).post {
-                    Log.d("FetchImage", "$bitmap")
-                    imageView.setImageBitmap(bitmap)
-                }
-
-            } catch (e: MalformedURLException) {
-                e.printStackTrace()
-            } catch (e: IOException) {
-                e.printStackTrace()
-            }
-        }
-    }
 }
