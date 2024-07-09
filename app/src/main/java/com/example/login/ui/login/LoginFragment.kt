@@ -109,10 +109,6 @@ class LoginFragment : Fragment() {
             NaverIdLoginSDK.authenticate(requireContext(), oauthLoginCallback)
         }
 
-        binding.logoutbutton.setOnClickListener {
-            NaverIdLoginSDK.logout()
-            logout()
-        }
 
         return root
     }
