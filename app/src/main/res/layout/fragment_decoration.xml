@@ -20,8 +20,7 @@
             android:layout_height="30dp"
             android:background = "#00FF0000"
             android:icon="@drawable/down"
-            app:iconSize="24dp"
-            app:iconTint="@android:color/black"
+            android:scaleType="centerInside"
             app:layout_constraintBottom_toTopOf="@id/recyclerview"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent" />
@@ -40,12 +39,14 @@
             android:id="@+id/download"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="664dp"
+            android:layout_marginBottom="16dp"
             android:text="다운로드!"
-            android:textSize="20dp"
+            android:textSize="20sp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.943"
-            app:layout_constraintStart_toStartOf="parent" />
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="0.023" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 </layout>
