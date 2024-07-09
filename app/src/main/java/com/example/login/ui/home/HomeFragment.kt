@@ -113,9 +113,24 @@ class HomeFragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-
-        handler = Handler()
         fetchImageUrls()
+        val imageLoader = ImageLoader.Builder(requireContext())
+            .componentRegistry { add(SvgDecoder(requireContext()))
+            }
+            .build()
+
+        val imageRequest = ImageRequest.Builder(requireContext())
+            .data("https://b732-223-39-177-253.ngrok-free.app/frames/1.svg")
+            .target(
+                onSuccess = { result ->
+                    val bitmap = (result as BitmapDrawable).bitmap
+                    binding.backgroundImage.setImageBitmap(bitmap)
+                },
+            )
+            .build()
+        imageLoader.enqueue(imageRequest)
+        handler = Handler()
+
         initRecycler()
         textureView1 = binding.textureView1
         textureView2 = binding.textureView2
@@ -462,7 +477,7 @@ class HomeFragment : Fragment() {
             override fun onResponse(call: Call<FrameResponse>, response: Response<FrameResponse>) {
                 if (response.isSuccessful) {
                     response.body()?.let { imagesResponse ->
-                        val urls = imagesResponse.data.frames.map { "https://705a-223-39-176-104.ngrok-free.app${it.url}" }
+                        val urls = imagesResponse.data.frames.map { "https://b732-223-39-177-253.ngrok-free.app${it.url}" }
                         Log.d("FetchImage", "$urls")
                         imageUrls.clear()
                         imageUrls.addAll(urls)
@@ -501,36 +516,11 @@ class HomeFragment : Fragment() {
                 )
                 .build()
             imageLoader.enqueue(imageRequest)
-
         }
         binding.indicatorRecyclerView.adapter = indicatorAdapter
         binding.indicatorRecyclerView.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
     }
 
-    private fun loadImageFromUrl(imageUrl: String, imageView: ImageView) {
-        thread {
-            try {
-                val url = URL(imageUrl)
-                val conn = url.openConnection() as HttpURLConnection
-                conn.doInput = true
-                conn.connect()
-
-                val inputStream: InputStream = conn.inputStream
-                val bitmap = BitmapFactory.decodeStream(inputStream)
-
-                // UI 작업은 메인 스레드에서 수행
-                Handler(Looper.getMainLooper()).post {
-                    Log.d("FetchImage", "$bitmap")
-                    imageView.setImageBitmap(bitmap)
-                }
-
-            } catch (e: MalformedURLException) {
-                e.printStackTrace()
-            } catch (e: IOException) {
-                e.printStackTrace()
-            }
-        }
-    }
     private fun captureFragment(fragment: Fragment): Bitmap? {
         val view = fragment.view ?: return null
         val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)

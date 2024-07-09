@@ -1,32 +1,16 @@
 package com.example.login.models
 
-import com.google.gson.annotations.SerializedName
-
-data class ApiResponse<T>(
-    @SerializedName("data") val data: T,
-    @SerializedName("message") val message: String,
-    @SerializedName("code") val code: String
-)
-
-data class StickerInfo(
-    @SerializedName("id") val id: Long,
-    @SerializedName("url") val url: String
-)
-
-data class StickerListInfo(
-    @SerializedName("stickers") val stickers: List<Sticker>
-)
-
 data class Sticker(
-    @SerializedName("id") val id: Long,
-    @SerializedName("url") val url: String,
-    @SerializedName("isShared") val isShared: Boolean
+    val id: Long,
+    val url: String
 )
 
-data class SharedStickerInfo(
-    @SerializedName("sticker") val sticker: Sticker
+data class StickerResponse(
+    val data: Stickers,
+    val message: String,
+    val code: String
 )
 
-data class ShareStickerRequest(
-    @SerializedName("stickerId") val stickerId: Long
+data class Stickers(
+    val stickers: List<Sticker>
 )
