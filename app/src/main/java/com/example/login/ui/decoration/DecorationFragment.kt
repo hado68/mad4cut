@@ -21,6 +21,7 @@ import android.view.animation.AnimationSet
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.GridLayoutManager
 import android.view.animation.TranslateAnimation
+import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.RelativeLayout
 import androidx.constraintlayout.widget.ConstraintLayout
@@ -66,7 +67,7 @@ class DecorationFragment : Fragment(){
     private val binding get() = _binding!!
     private val imageUrls: MutableList<String> = mutableListOf()
     private lateinit var adapter: RecyclerAdapter
-    private lateinit var toggleButton: MaterialButton
+    private lateinit var toggleButton: ImageButton
     private var isRecyclerViewVisible = true
     private lateinit var recyclerView: RecyclerView
     private val apiService: ApiService by lazy {
@@ -100,7 +101,7 @@ class DecorationFragment : Fragment(){
         initRecycler()
         recyclerView.visibility = View.VISIBLE
         isRecyclerViewVisible = true
-        toggleButton.setIconResource(R.drawable.down)
+        toggleButton.setImageResource(R.drawable.down2)
         toggleButton.setOnClickListener {
             if (isRecyclerViewVisible) {
                 slideDown(recyclerView, toggleButton)
@@ -220,7 +221,7 @@ class DecorationFragment : Fragment(){
     private fun Int.dpToPx(): Int {
         return (this * resources.displayMetrics.density).toInt()
     }
-    private fun slideUp(recyclerView: View, toggleButton: MaterialButton) {
+    private fun slideUp(recyclerView: View, toggleButton: ImageButton) {
         val displayMetrics = resources.displayMetrics
         val px50dp = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 50f, displayMetrics)
 
@@ -239,13 +240,13 @@ class DecorationFragment : Fragment(){
 
         animatorSet.addListener(object : AnimatorListenerAdapter() {
             override fun onAnimationEnd(animation: Animator) {
-                toggleButton.setIconResource(R.drawable.down)
+                toggleButton.setImageResource(R.drawable.down2)
             }
         })
         animatorSet.start()
     }
 
-    private fun slideDown(recyclerView: View, toggleButton: MaterialButton) {
+    private fun slideDown(recyclerView: View, toggleButton: ImageButton) {
         val displayMetrics = resources.displayMetrics
         val px50dp = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 50f, displayMetrics)
 
@@ -262,7 +263,7 @@ class DecorationFragment : Fragment(){
         animatorSet.addListener(object : AnimatorListenerAdapter() {
             override fun onAnimationEnd(animation: Animator) {
                 recyclerView.visibility = View.INVISIBLE
-                toggleButton.setIconResource(R.drawable.up)
+                toggleButton.setImageResource(R.drawable.up2)
             }
         })
         animatorSet.start()

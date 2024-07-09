@@ -21,6 +21,9 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
         app:layout_anchorGravity="bottom"
-        app:menu="@menu/bottom_nav_menu" />
+        app:menu="@menu/bottom_nav_menu"
+        app:itemTextColor="@color/black"
+        app:itemIconTint="@color/black"
+        app:backgroundTint="@color/semiibory"/>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

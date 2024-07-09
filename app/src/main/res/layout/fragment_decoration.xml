@@ -14,13 +14,13 @@
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
-        <com.google.android.material.button.MaterialButton
+        <ImageButton
             android:id="@+id/button_toggle"
             android:layout_width="110dp"
             android:layout_height="30dp"
-            android:background = "#00FF0000"
-            android:icon="@drawable/down"
-            android:scaleType="centerInside"
+            android:background="#00FF0000"
+            android:scaleType="fitCenter"
+            android:src="@drawable/down"
             app:layout_constraintBottom_toTopOf="@id/recyclerview"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent" />

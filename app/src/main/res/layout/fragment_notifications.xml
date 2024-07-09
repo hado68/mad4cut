@@ -11,7 +11,6 @@
             android:id="@+id/recyclerview"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:paddingBottom="56dp"
             android:layout_above="@+id/imagesendbutton" />
 
         <Button
@@ -20,8 +19,9 @@
             android:layout_height="wrap_content"
             android:layout_alignParentBottom="true"
             android:layout_centerHorizontal="true"
-            android:layout_marginBottom="70dp"
-            android:text="Upload Image" />
+            android:layout_marginBottom="64dp"
+            android:text="업로드!"
+            android:textSize="20sp"/>
 
     </RelativeLayout>
 
