@@ -1,5 +1,6 @@
 package com.example.login.ui.dashboard
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
 import android.graphics.BitmapFactory
@@ -23,7 +24,6 @@ import com.example.login.RetrofitClient
 import com.example.login.databinding.FragmentDashboardBinding
 import com.example.login.interfaces.ApiService
 import com.example.login.models.ImagesResponse
-import com.example.login.models.StickerResponse
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
@@ -130,13 +130,16 @@ class DashboardFragment : Fragment() {
     private fun fetchImageUrls() {
         val call = apiService.getgalleryFiles()
         call.enqueue(object : Callback<ImagesResponse> {
+            @SuppressLint("NotifyDataSetChanged")
             override fun onResponse(call: Call<ImagesResponse>, response: Response<ImagesResponse>) {
                 if (response.isSuccessful) {
                     response.body()?.let { imagesResponse ->
-                        val urls = imagesResponse.data.images.map { "https://b732-223-39-177-253.ngrok-free.app${it.url}" }
+                        val baseUrl = context?.getString(R.string.base_url)
+                        val urls = imagesResponse.data.images.map { "${baseUrl}${it.url}" }
                         Log.d("FetchImage", "$urls")
                         imageUrls.clear()
                         imageUrls.addAll(urls)
+                        adapter.notifyDataSetChanged()
                         initRecycler()
                     }
                 } else {
@@ -158,7 +161,7 @@ class DashboardFragment : Fragment() {
         binding.recyclerview.layoutManager = GridLayoutManager(requireContext(),2)
         adapter.setItemClickListener(object : RecyclerAdapter.onItemClickListener {
             override fun onItemClick(position: Int) {
-
+                //여기서 이미지 클릭시 하게될 행동 쓰기
             }
         })
 
