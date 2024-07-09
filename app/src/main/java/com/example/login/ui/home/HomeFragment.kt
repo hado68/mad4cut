@@ -9,6 +9,8 @@ import android.graphics.Canvas
 import android.graphics.ImageFormat
 import android.graphics.Matrix
 import android.graphics.SurfaceTexture
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
 import android.hardware.camera2.*
 import android.media.Image
 import android.media.ImageReader
@@ -32,10 +34,19 @@ import androidx.fragment.app.FragmentTransaction
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
+import coil.ImageLoader
+import coil.decode.SvgDecoder
+import coil.request.ImageRequest
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.DataSource
+import com.bumptech.glide.load.engine.GlideException
+import com.bumptech.glide.request.RequestListener
+import com.bumptech.glide.request.RequestOptions
 import com.example.login.R
 import com.example.login.RetrofitClient
 import com.example.login.databinding.FragmentHomeBinding
 import com.example.login.interfaces.ApiService
+import com.example.login.models.FrameResponse
 import com.example.login.models.ImagesResponse
 import retrofit2.Call
 import retrofit2.Callback
@@ -102,6 +113,7 @@ class HomeFragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+
         handler = Handler()
         fetchImageUrls()
         initRecycler()
@@ -446,11 +458,11 @@ class HomeFragment : Fragment() {
     }
     private fun fetchImageUrls() {
         val call = apiService.frameFiles()
-        call.enqueue(object : Callback<ImagesResponse> {
-            override fun onResponse(call: Call<ImagesResponse>, response: Response<ImagesResponse>) {
+        call.enqueue(object : Callback<FrameResponse> {
+            override fun onResponse(call: Call<FrameResponse>, response: Response<FrameResponse>) {
                 if (response.isSuccessful) {
                     response.body()?.let { imagesResponse ->
-                        val urls = imagesResponse.data.images.map { "https://b0b1-223-39-176-107.ngrok-free.app${it.url}" }
+                        val urls = imagesResponse.data.frames.map { "https://705a-223-39-176-104.ngrok-free.app${it.url}" }
                         Log.d("FetchImage", "$urls")
                         imageUrls.clear()
                         imageUrls.addAll(urls)
@@ -461,7 +473,7 @@ class HomeFragment : Fragment() {
                 }
             }
 
-            override fun onFailure(call: Call<ImagesResponse>, t: Throwable) {
+            override fun onFailure(call: Call<FrameResponse>, t: Throwable) {
                 t.printStackTrace()
                 Log.e("ImageList", "Failed to fetch image URLs")
             }
@@ -471,15 +483,25 @@ class HomeFragment : Fragment() {
 
 
     private fun initRecycler() {
-        imageUrls.add("https://search.pstatic.net/common/?src=http%3A%2F%2Fblogfiles.naver.net%2FMjAyNDA2MDRfMTEg%2FMDAxNzE3NDY3OTU0NjQ3.manwzdw7qWGewwwO_hFRmbTUh19i5bw8LyreA2zoYk4g.VsLhsUk4osPUU0IxhF2z1xIXoWOyGJkyFl7C0Okkrb8g.PNG%2Fv2.PNG&type=a340")
-        imageUrls.add("https://search.pstatic.net/common/?src=http%3A%2F%2Fblogfiles.naver.net%2FMjAyNDAzMDVfMjUw%2FMDAxNzA5NjM0NDc5NjM3.ZTlyfczxfjQL_VKukur1s8AWQd4DeuO8qMnAp6mdmaMg.clBh_0nDh-Ox3uX7-zug3ezWMATU66QBQc4gRxzSpZ4g.JPEG%2FIMG_3512.jpg&type=a340")
-        imageUrls.add("https://search.pstatic.net/sunny/?src=https%3A%2F%2Fw7.pngwing.com%2Fpngs%2F885%2F946%2Fpng-transparent-groudon-darkrai-pokedex-pokemon-giratina-pokemon-seafood-fictional-character-crab.png&type=a340")
-        imageUrls.add("https://search.pstatic.net/sunny/?src=https%3A%2F%2Fi.namu.wiki%2Fi%2F1Ogotf36_OmhfkNY4gR7Mm_PqdDX8BOEU2qUKhL1SgAnYDsRBbzdS57G4SMqMxypVYDQsP0GSnOoEKD7n3JXhQ.webp&type=a340")
-        imageUrls.add("https://search.pstatic.net/common/?src=http%3A%2F%2Fblogfiles.naver.net%2FMjAyNDA0MDlfMTk1%2FMDAxNzEyNjUwMDE1NDk3.vtwekxMeNXbVniVziotwGp-OnxBi1u2LdFSpFgCKiE8g.dP2UWN2IVNTZHmSy4GYROBDgE9YbyhUsw6m7tWIOt0wg.JPEG%2Fbandicam_2024-04-09_17-06-24-112.jpg&type=a340")
-        imageUrls.add("https://search.pstatic.net/sunny/?src=https%3A%2F%2Fw7.pngwing.com%2Fpngs%2F866%2F884%2Fpng-transparent-pokemon-x-and-y-pokemon-heartgold-and-soulsilver-pokemon-sun-and-moon-pokemon-crystal-lugia-lugia-pokemon-mammal-vertebrate-cartoon.png&type=a340")
+
 
         val indicatorAdapter = IndicatorAdapter(imageUrls.size) { position ->
-            loadImageFromUrl(imageUrls[position], binding.backgroundImage)
+            val imageLoader = ImageLoader.Builder(requireContext())
+                .componentRegistry { add(SvgDecoder(requireContext()))
+                }
+                .build()
+
+            val imageRequest = ImageRequest.Builder(requireContext())
+                .data(imageUrls[position])
+                .target(
+                    onSuccess = { result ->
+                        val bitmap = (result as BitmapDrawable).bitmap
+                        binding.backgroundImage.setImageBitmap(bitmap)
+                    },
+                )
+                .build()
+            imageLoader.enqueue(imageRequest)
+
         }
         binding.indicatorRecyclerView.adapter = indicatorAdapter
         binding.indicatorRecyclerView.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)

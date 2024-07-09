@@ -62,11 +62,6 @@ class DashboardFragment : Fragment() {
         val root: View = binding.root
         fetchImageUrls()
 
-        val uploadButton = binding.imagesendbutton
-
-        uploadButton.setOnClickListener {
-            openImageChooser()
-        }
         initRecycler()
         return root
     }
@@ -137,7 +132,7 @@ class DashboardFragment : Fragment() {
             override fun onResponse(call: Call<ImagesResponse>, response: Response<ImagesResponse>) {
                 if (response.isSuccessful) {
                     response.body()?.let { imagesResponse ->
-                        val urls = imagesResponse.data.images.map { "https://b0b1-223-39-176-107.ngrok-free.app${it.url}" }
+                        val urls = imagesResponse.data.images.map { "https://705a-223-39-176-104.ngrok-free.app${it.url}" }
                         Log.d("FetchImage", "$urls")
                         imageUrls.clear()
                         imageUrls.addAll(urls)

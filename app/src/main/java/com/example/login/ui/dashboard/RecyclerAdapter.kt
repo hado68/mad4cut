@@ -33,7 +33,7 @@ class RecyclerAdapter(val items: MutableList<String>) :
         viewType: Int
     ): RecyclerAdapter.ViewHolder {
         val v =
-            LayoutInflater.from(parent.context).inflate(R.layout.item_recyclerview, parent, false)
+            LayoutInflater.from(parent.context).inflate(R.layout.item_recycler_gallery, parent, false)
         return ViewHolder(v)
     }
 

@@ -148,7 +148,7 @@ class NotificationsFragment : Fragment(), StickerAdapter.OnItemClickListener {
                 if (response.isSuccessful) {
                     response.body()?.data?.stickers?.let { stickers ->
                         sharedStickers.clear()
-                        sharedStickers.addAll(stickers.map { "https://b0b1-223-39-176-107.ngrok-free.app${it.url}" })
+                        sharedStickers.addAll(stickers.map { "https://705a-223-39-176-104.ngrok-free.app${it.url}" })
                         combineStickers()
                     }
                 } else {
