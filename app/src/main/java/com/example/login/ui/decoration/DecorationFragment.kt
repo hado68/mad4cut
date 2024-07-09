@@ -6,14 +6,22 @@ import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
 import android.graphics.BitmapFactory
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.util.Log
 import android.util.TypedValue
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AnimationSet
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.GridLayoutManager
 import android.view.animation.TranslateAnimation
+import android.widget.ImageView
+import android.widget.RelativeLayout
+import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.constraintlayout.widget.ConstraintSet
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.login.R
@@ -22,6 +30,16 @@ import com.example.login.databinding.FragmentDecorationBinding
 import com.example.login.interfaces.ApiService
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.IOException
+import java.io.InputStream
+import java.net.HttpURLConnection
+import java.net.MalformedURLException
+import java.net.URL
+import kotlin.concurrent.thread
 
 
 class DecorationFragment : Fragment(){
@@ -38,6 +56,8 @@ class DecorationFragment : Fragment(){
     private val apiService: ApiService by lazy {
         RetrofitClient.getClient(requireContext()).create(ApiService::class.java)
     }
+    private var dX: Float = 0f
+    private var dY: Float = 0f
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -90,10 +110,53 @@ class DecorationFragment : Fragment(){
         binding.recyclerview.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
         adapter.setItemClickListener(object : RecyclerAdapter.onItemClickListener {
             override fun onItemClick(position: Int) {
-                //여기서 이미지 클릭시 하게될 행동 쓰기
+                Log.d("click","button is clicked ${imageUrls[position]}")
+                addDraggableImageView(imageUrls[position])
+
+
             }
         })
 
+    }
+    private fun addDraggableImageView(imageUrl: String) {
+        val imageView = ImageView(requireContext()).apply {
+            id = View.generateViewId()
+            layoutParams = ConstraintLayout.LayoutParams(80.dpToPx(), 80.dpToPx())
+            loadImageFromUrl(imageUrl, this)
+        }
+
+        binding.rootLayout.addView(imageView)
+        val set = ConstraintSet()
+        set.clone(binding.rootLayout)
+        set.connect(imageView.id, ConstraintSet.TOP, binding.rootLayout.id, ConstraintSet.TOP, 60)
+        set.connect(imageView.id, ConstraintSet.START, binding.rootLayout.id, ConstraintSet.START, 60)
+        set.applyTo(binding.rootLayout)
+        imageView.setOnTouchListener { v, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    dX = v.x - event.rawX
+                    dY = v.y - event.rawY
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    val newX = event.rawX + dX
+                    val newY = event.rawY + dY
+                    v.animate()
+                        .x(newX)
+                        .y(newY)
+                        .setDuration(0)
+                        .start()
+                    val params = v.layoutParams as ConstraintLayout.LayoutParams
+                    params.leftMargin = newX.toInt()
+                    params.topMargin = newY.toInt()
+                    v.layoutParams = params
+                }
+                else -> return@setOnTouchListener false
+            }
+            true
+        }
+    }
+    private fun Int.dpToPx(): Int {
+        return (this * resources.displayMetrics.density).toInt()
     }
     private fun slideUp(recyclerView: View, toggleButton: MaterialButton) {
         val displayMetrics = resources.displayMetrics
@@ -141,5 +204,29 @@ class DecorationFragment : Fragment(){
             }
         })
         animatorSet.start()
+    }
+    private fun loadImageFromUrl(imageUrl: String, imageView: ImageView) {
+        thread {
+            try {
+                val url = URL(imageUrl)
+                val conn = url.openConnection() as HttpURLConnection
+                conn.doInput = true
+                conn.connect()
+
+                val inputStream: InputStream = conn.inputStream
+                val bitmap = BitmapFactory.decodeStream(inputStream)
+
+                // UI 작업은 메인 스레드에서 수행
+                Handler(Looper.getMainLooper()).post {
+                    Log.d("FetchImage", "$bitmap")
+                    imageView.setImageBitmap(bitmap)
+                }
+
+            } catch (e: MalformedURLException) {
+                e.printStackTrace()
+            } catch (e: IOException) {
+                e.printStackTrace()
+            }
+        }
     }
 }
