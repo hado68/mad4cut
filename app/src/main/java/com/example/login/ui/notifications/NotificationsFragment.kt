@@ -124,9 +124,10 @@ class NotificationsFragment : Fragment(), StickerAdapter.OnItemClickListener {
         call.enqueue(object : Callback<ApiResponse<StickerListInfo>> {
             override fun onResponse(call: Call<ApiResponse<StickerListInfo>>, response: Response<ApiResponse<StickerListInfo>>) {
                 if (response.isSuccessful) {
+                    val baseUrl = context?.getString(R.string.base_url)
                     response.body()?.data?.stickers?.let { stickers ->
                         personalStickers.clear()
-                        personalStickers.addAll(stickers.map { "https://b0b1-223-39-176-107.ngrok-free.app${it.url}" })
+                        personalStickers.addAll(stickers.map { "${baseUrl}${it.url}" })
                         combineStickers()
                     }
                 } else {
