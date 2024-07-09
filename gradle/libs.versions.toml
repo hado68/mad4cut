@@ -14,6 +14,7 @@ navigationFragmentKtx = "2.7.7"
 navigationUiKtx = "2.7.7"
 oauth = "5.9.1"
 constraintlayoutCore = "1.0.4"
+volley = "1.2.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -30,6 +31,7 @@ androidx-navigation-ui-ktx = { group = "androidx.navigation", name = "navigation
 oauth = { module = "com.navercorp.nid:oauth", version.ref = "oauth" }
 oauth-jdk8 = { module = "com.navercorp.nid:oauth-jdk8", version.ref = "oauth" }
 androidx-constraintlayout-core = { group = "androidx.constraintlayout", name = "constraintlayout-core", version.ref = "constraintlayoutCore" }
+volley = { group = "com.android.volley", name = "volley", version.ref = "volley" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

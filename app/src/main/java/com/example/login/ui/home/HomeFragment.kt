@@ -10,7 +10,6 @@ import android.graphics.ImageFormat
 import android.graphics.Matrix
 import android.graphics.SurfaceTexture
 import android.graphics.drawable.BitmapDrawable
-import android.graphics.drawable.Drawable
 import android.hardware.camera2.*
 import android.media.Image
 import android.media.ImageReader
@@ -30,24 +29,16 @@ import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.FragmentTransaction
 import androidx.navigation.fragment.findNavController
-import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import coil.ImageLoader
 import coil.decode.SvgDecoder
 import coil.request.ImageRequest
-import com.bumptech.glide.Glide
-import com.bumptech.glide.load.DataSource
-import com.bumptech.glide.load.engine.GlideException
-import com.bumptech.glide.request.RequestListener
-import com.bumptech.glide.request.RequestOptions
 import com.example.login.R
 import com.example.login.RetrofitClient
 import com.example.login.databinding.FragmentHomeBinding
 import com.example.login.interfaces.ApiService
 import com.example.login.models.FrameResponse
-import com.example.login.models.ImagesResponse
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -55,13 +46,8 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
-import java.io.InputStream
 import java.io.OutputStream
-import java.net.HttpURLConnection
-import java.net.MalformedURLException
-import java.net.URL
 import java.util.*
-import java.util.concurrent.LinkedBlockingQueue
 import kotlin.concurrent.thread
 
 class HomeFragment : Fragment() {
@@ -70,10 +56,7 @@ class HomeFragment : Fragment() {
     private val binding get() = _binding!!
     private lateinit var handler: Handler
 
-    private lateinit var textureView1: TextureView
-    private lateinit var textureView2: TextureView
-    private lateinit var textureView3: TextureView
-    private lateinit var textureView4: TextureView
+    private lateinit var textureView: TextureView
 
     private lateinit var capturedImage1: ImageView
     private lateinit var capturedImage2: ImageView
@@ -82,14 +65,16 @@ class HomeFragment : Fragment() {
 
     private var cameraDevice: CameraDevice? = null
     private var captureSession: CameraCaptureSession? = null
+    private var imageReader: ImageReader? = null
 
     private val REQUEST_PERMISSIONS = 100
 
-    private val textureViewQueue = LinkedBlockingQueue<Pair<TextureView, ImageView>>()
+    private var currentCaptureIndex = 0
     private var frontCameraId: String? = null
-    private lateinit var cameraManager: CameraManager  // 카메라 매니저 멤버 변수로 선언
+    private lateinit var cameraManager: CameraManager
 
     private val imageUrls: MutableList<String> = mutableListOf()
+    private val capturedBitmaps: MutableList<Bitmap> = mutableListOf()
     private var isFirstClick = true
     private val apiService: ApiService by lazy {
         RetrofitClient.getClient(requireContext()).create(ApiService::class.java)
@@ -98,11 +83,12 @@ class HomeFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        handler = Handler()
+        handler = Handler(Looper.getMainLooper())
 
         cameraManager = requireActivity().getSystemService(CAMERA_SERVICE) as CameraManager
         frontCameraId = getFrontFacingCameraId(cameraManager)
     }
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -113,24 +99,20 @@ class HomeFragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-
-        handler = Handler()
         fetchImageUrls()
         initRecycler()
-        textureView1 = binding.textureView1
-        textureView2 = binding.textureView2
-        textureView3 = binding.textureView3
-        textureView4 = binding.textureView4
+        textureView = binding.textureView1
         capturedImage1 = binding.capturedImage1
         capturedImage2 = binding.capturedImage2
         capturedImage3 = binding.capturedImage3
         capturedImage4 = binding.capturedImage4
 
-        setupTextureListeners()
+        setupTextureListener()
 
         timerTextView = binding.timerTextView
 
         binding.startButton.setOnClickListener {
+            Log.d("HomeFragment", "Start button clicked")
             binding.nextButton.visibility = View.INVISIBLE
             binding.startButton.visibility = View.INVISIBLE
             if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA)
@@ -143,16 +125,17 @@ class HomeFragment : Fragment() {
                 ), REQUEST_PERMISSIONS)
             } else {
                 resetCameraSequence()
-                startCameraSequence()
+                openCamera()
             }
         }
 
+        binding.nextButton.setOnClickListener {
+            Log.d("HomeFragment", "Next button clicked")
+            if (isFirstClick) {
+                Log.d("HomeFragment", "Next button clicked")
 
-
-        binding.nextButton.setOnClickListener{
-            if (isFirstClick){
                 binding.indicatorRecyclerView.visibility = View.VISIBLE
-            }else{
+            } else {
                 binding.indicatorRecyclerView.visibility = View.INVISIBLE
                 binding.nextButton.visibility = View.INVISIBLE
                 binding.startButton.visibility = View.INVISIBLE
@@ -170,9 +153,7 @@ class HomeFragment : Fragment() {
                 }
             }
             isFirstClick = !isFirstClick
-
         }
-
     }
 
     private fun getFrontFacingCameraId(cameraManager: CameraManager): String? {
@@ -181,30 +162,21 @@ class HomeFragment : Fragment() {
                 val characteristics = cameraManager.getCameraCharacteristics(cameraId)
                 val facing = characteristics.get(CameraCharacteristics.LENS_FACING)
                 if (facing != null && facing == CameraCharacteristics.LENS_FACING_FRONT) {
+                    Log.d("HomeFragment", "Front facing camera found: $cameraId")
                     return cameraId
                 }
             }
         } catch (e: CameraAccessException) {
             e.printStackTrace()
         }
+        Log.d("HomeFragment", "No front facing camera found")
         return null
     }
 
-    private fun setupTextureListeners() {
-
-        textureView1.surfaceTextureListener = createSurfaceTextureListener(textureView1, capturedImage1)
-        textureView2.surfaceTextureListener = createSurfaceTextureListener(textureView2, capturedImage2)
-        textureView3.surfaceTextureListener = createSurfaceTextureListener(textureView3, capturedImage3)
-        textureView4.surfaceTextureListener = createSurfaceTextureListener(textureView4, capturedImage4)
-
-    }
-
-    private fun createSurfaceTextureListener(textureView: TextureView, capturedImage: ImageView): TextureView.SurfaceTextureListener {
-        return object : TextureView.SurfaceTextureListener {
+    private fun setupTextureListener() {
+        textureView.surfaceTextureListener = object : TextureView.SurfaceTextureListener {
             override fun onSurfaceTextureAvailable(surface: SurfaceTexture, width: Int, height: Int) {
-                // TextureView가 사용 가능해지면 큐에 추가
-                textureViewQueue.offer(Pair(textureView, capturedImage))
-
+                Log.d("HomeFragment", "SurfaceTexture available")
             }
 
             override fun onSurfaceTextureSizeChanged(surface: SurfaceTexture, width: Int, height: Int) {}
@@ -216,26 +188,30 @@ class HomeFragment : Fragment() {
     }
 
     private fun startCameraSequence() {
-        if (textureViewQueue.isNotEmpty()) {
-            startNextCameraPreview()
-        }
+        Log.d("HomeFragment", "Starting camera sequence")
+        currentCaptureIndex = 0
+        capturedBitmaps.clear()
+        startNextCapture()
     }
 
-    private fun startNextCameraPreview() {
-        if (textureViewQueue.isNotEmpty()) {
-            val (textureView, capturedImage) = textureViewQueue.poll()
-
-            // TextureView를 나타내고 타이머 시작
-            textureView.visibility = View.VISIBLE
-            openCamera(textureView, capturedImage)
+    private fun startNextCapture() {
+        Log.d("HomeFragment", "Starting next capture. Index: $currentCaptureIndex")
+        if (currentCaptureIndex < 4) {
+            startCountdown {
+                takePicture()
+            }
         } else {
             handler.post {
+                Log.d("HomeFragment", "All captures completed, showing next button")
                 binding.nextButton.visibility = View.VISIBLE
+                Log.d("HomeFragment", "Next button visibility: ${binding.nextButton.visibility}")
+                closeCamera()
             }
         }
     }
 
     private fun startCountdown(onCountdownFinished: () -> Unit) {
+        Log.d("HomeFragment", "Starting countdown")
         timerTextView.visibility = View.VISIBLE
         val countdownTime = 7
         val countdownHandler = Handler(Looper.getMainLooper())
@@ -244,6 +220,7 @@ class HomeFragment : Fragment() {
             countdownHandler.postDelayed({
                 timerTextView.text = (i - 2).toString()
                 if (i == 1) {
+                    Log.d("HomeFragment", "Countdown finished")
                     onCountdownFinished()
                     timerTextView.visibility = View.GONE
                 }
@@ -251,8 +228,7 @@ class HomeFragment : Fragment() {
         }
     }
 
-    private fun openCamera(textureView: TextureView, capturedImage: ImageView) {
-        val cameraManager = requireActivity().getSystemService(CAMERA_SERVICE) as CameraManager
+    private fun openCamera() {
         try {
             val cameraId = frontCameraId ?: return
             val cameraCharacteristics = cameraManager.getCameraCharacteristics(cameraId)
@@ -262,52 +238,59 @@ class HomeFragment : Fragment() {
             if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
                 return
             }
+
+            // Initialize ImageReader
+            imageReader = ImageReader.newInstance(previewSize.width, previewSize.height, ImageFormat.JPEG, 4)
+
             cameraManager.openCamera(cameraId, object : CameraDevice.StateCallback() {
                 override fun onOpened(camera: CameraDevice) {
+                    Log.d("HomeFragment", "Camera opened")
                     cameraDevice = camera
-                    try {
-                        val texture = textureView.surfaceTexture ?: return
-                        texture.setDefaultBufferSize(previewSize.width, previewSize.height)
-                        val surface = Surface(texture)
-                        val captureRequestBuilder = camera.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
-                        captureRequestBuilder.addTarget(surface)
-                        camera.createCaptureSession(listOf(surface), object : CameraCaptureSession.StateCallback() {
-                            override fun onConfigured(session: CameraCaptureSession) {
-                                if (cameraDevice == null) return  // 추가된 null 체크
-                                captureSession = session
-                                try {
-                                    session.setRepeatingRequest(captureRequestBuilder.build(), null, handler)
-                                    startCountdown { takePicture(textureView, capturedImage) }
-                                } catch (e: CameraAccessException) {
-                                    e.printStackTrace()
-                                    closeCamera()
-                                }
-                            }
-
-                            override fun onConfigureFailed(session: CameraCaptureSession) {
-                                closeCamera()
-                            }
-                        }, handler)
-                    } catch (e: CameraAccessException) {
-                        e.printStackTrace()
-                        closeCamera()
-                    }
+                    createCameraPreviewSession()
                 }
 
                 override fun onDisconnected(camera: CameraDevice) {
+                    Log.d("HomeFragment", "Camera disconnected")
                     cameraDevice?.close()
-                    cameraDevice = null  // cameraDevice를 null로 설정
-                    Log.e("Camera", "Camera device disconnected")
+                    cameraDevice = null
                 }
 
                 override fun onError(camera: CameraDevice, error: Int) {
+                    Log.d("HomeFragment", "Camera error: $error")
                     camera.close()
-                    cameraDevice = null  // cameraDevice를 null로 설정
-                    Log.e("Camera", "Error opening camera: $error")
-                    if (error == ERROR_CAMERA_DEVICE || error == ERROR_CAMERA_SERVICE) {
-                        closeCamera()
-                        openCamera(textureView, capturedImage)
+                    cameraDevice = null
+                }
+            }, handler)
+        } catch (e: CameraAccessException) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun createCameraPreviewSession() {
+        try {
+            val texture = textureView.surfaceTexture ?: return
+            val surface = Surface(texture)
+
+            val previewRequestBuilder = cameraDevice?.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
+            previewRequestBuilder?.addTarget(surface)
+
+            cameraDevice?.createCaptureSession(listOf(surface, imageReader?.surface), object : CameraCaptureSession.StateCallback() {
+                override fun onConfigured(session: CameraCaptureSession) {
+                    captureSession = session
+                    try {
+                        previewRequestBuilder?.build()?.let {
+                            captureSession?.setRepeatingRequest(it, null, handler)
+                        }
+                        Log.d("HomeFragment", "Camera preview session started")
+                        startCameraSequence()
+                    } catch (e: CameraAccessException) {
+                        e.printStackTrace()
                     }
+                }
+
+                override fun onConfigureFailed(session: CameraCaptureSession) {
+                    Log.d("HomeFragment", "Failed to configure camera")
+                    Toast.makeText(context, "Failed to configure camera", Toast.LENGTH_SHORT).show()
                 }
             }, handler)
         } catch (e: CameraAccessException) {
@@ -320,119 +303,112 @@ class HomeFragment : Fragment() {
         captureSession = null
         cameraDevice?.close()
         cameraDevice = null
+        imageReader?.close()
+        imageReader = null
+        // TextureView를 숨기도록 추가
+        handler.post {
+            Log.d("HomeFragment", "Closing camera")
+            textureView.visibility = View.GONE
+            // 캡처된 이미지가 보이도록 설정
+            _binding?.let { binding ->
+                if (capturedBitmaps.size > 0) binding.capturedImage1.setImageBitmap(capturedBitmaps[0])
+                if (capturedBitmaps.size > 1) binding.capturedImage2.setImageBitmap(capturedBitmaps[1])
+                if (capturedBitmaps.size > 2) binding.capturedImage3.setImageBitmap(capturedBitmaps[2])
+                if (capturedBitmaps.size > 3) binding.capturedImage4.setImageBitmap(capturedBitmaps[3])
+
+                binding.capturedImage1.visibility = View.VISIBLE
+                binding.capturedImage2.visibility = View.VISIBLE
+                binding.capturedImage3.visibility = View.VISIBLE
+                binding.capturedImage4.visibility = View.VISIBLE
+            }
+        }
     }
+
+
     override fun onPause() {
         super.onPause()
         closeCamera()
     }
+
     override fun onResume() {
         super.onResume()
-        if (textureView1.isAvailable) {
-            setupTextureListeners()
+        if (textureView.isAvailable) {
+            // 버튼 클릭 시 카메라를 열도록 설정되었으므로, onResume에서는 아무 작업도 하지 않음
         }
         resetCameraSequence()
         binding.startButton.visibility = View.VISIBLE
         binding.nextButton.visibility = View.INVISIBLE
     }
 
-    // 카메라 시퀀스 초기화 메서드 추가
     private fun resetCameraSequence() {
-        textureViewQueue.clear()
-        textureViewQueue.offer(Pair(textureView1, capturedImage1))
-        textureViewQueue.offer(Pair(textureView2, capturedImage2))
-        textureViewQueue.offer(Pair(textureView3, capturedImage3))
-        textureViewQueue.offer(Pair(textureView4, capturedImage4))
-
+        Log.d("HomeFragment", "Resetting camera sequence")
+        currentCaptureIndex = 0
         capturedImage1.visibility = View.GONE
         capturedImage2.visibility = View.GONE
         capturedImage3.visibility = View.GONE
         capturedImage4.visibility = View.GONE
 
-        textureView1.visibility = View.VISIBLE
-        textureView2.visibility = View.VISIBLE
-        textureView3.visibility = View.VISIBLE
-        textureView4.visibility = View.VISIBLE
+        textureView.visibility = View.VISIBLE
     }
 
-    private fun takePicture(textureView: TextureView, capturedImage: ImageView) {
+    private fun takePicture() {
         if (cameraDevice == null || captureSession == null) return
 
-        val cameraManager = requireActivity().getSystemService(CAMERA_SERVICE) as CameraManager
         try {
             val cameraCharacteristics = cameraManager.getCameraCharacteristics(cameraDevice!!.id)
             val jpegSizes = cameraCharacteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)!!.getOutputSizes(ImageFormat.JPEG)
             val width = jpegSizes[0].width
             val height = jpegSizes[0].height
 
-            val reader = ImageReader.newInstance(width, height, ImageFormat.JPEG, 1)
-            val outputSurfaces = ArrayList<Surface>(2)
-            outputSurfaces.add(reader.surface)
-            outputSurfaces.add(Surface(textureView.surfaceTexture))
-
+            val reader = imageReader ?: return
             val captureBuilder = cameraDevice!!.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE)
             captureBuilder.addTarget(reader.surface)
             captureBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO)
 
-            cameraDevice!!.createCaptureSession(outputSurfaces, object : CameraCaptureSession.StateCallback() {
-                override fun onConfigured(session: CameraCaptureSession) {
-                    captureSession = session
-                    try {
-                        val file = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "pic.jpg")
-                        val readerListener = ImageReader.OnImageAvailableListener { reader ->
-                            var image: Image? = null
-                            try {
-                                image = reader.acquireLatestImage()
-                                val buffer = image.planes[0].buffer
-                                val bytes = ByteArray(buffer.capacity())
-                                buffer.get(bytes)
-                                save(bytes, file)
-                                var bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+            reader.setOnImageAvailableListener({ reader ->
+                var image: Image? = null
+                try {
+                    image = reader.acquireLatestImage()
+                    val buffer = image.planes[0].buffer
+                    val bytes = ByteArray(buffer.capacity())
+                    buffer.get(bytes)
+                    val file = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "pic_${currentCaptureIndex}.jpg")
+                    Log.d("HomeFragment", "Saving image to: ${file.absolutePath}")
+                    save(bytes, file)
+                    var bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
 
-                                // 이미지를 좌우 반전
-                                val matrix = Matrix()
-                                matrix.postRotate(270f)
-                                matrix.postScale(-1f, 1f, bitmap.width / 2f, bitmap.height / 2f)
-                                bitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+                    val matrix = Matrix()
+                    matrix.postRotate(270f)
+                    matrix.postScale(-1f, 1f, bitmap.width / 2f, bitmap.height / 2f)
+                    bitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
 
-                                // UI 스레드에서 실행되도록 핸들러 사용
-                                handler.post {
-                                    Log.d("Debug", "Handler post is running")
-                                    capturedImage.setImageBitmap(bitmap)
-                                    capturedImage.visibility = View.VISIBLE
+                    capturedBitmaps.add(bitmap)
 
-                                    // TextureView 숨기기
-                                    textureView.visibility = View.GONE
-                                }
-                            } catch (e: IOException) {
-                                e.printStackTrace()
-                            } finally {
-                                image?.close()
-                            }
+                    handler.post {
+                        currentCaptureIndex++
+                        Log.d("HomeFragment", "Picture taken. Current capture index: $currentCaptureIndex")
+                        if (currentCaptureIndex < 4) {
+                            startNextCapture()
+                        } else {
+                            binding.nextButton.visibility = View.VISIBLE
+                            closeCamera()
                         }
-
-                        reader.setOnImageAvailableListener(readerListener, handler)
-                        val captureListener = object : CameraCaptureSession.CaptureCallback() {
-                            override fun onCaptureCompleted(session: CameraCaptureSession, request: CaptureRequest, result: TotalCaptureResult) {
-                                super.onCaptureCompleted(session, request, result)
-                                cameraDevice?.close()
-                                captureSession?.close()
-
-                                startNextCameraPreview()
-                            }
-                        }
-
-                        session.capture(captureBuilder.build(), captureListener, handler)
-                    } catch (e: CameraAccessException) {
-                        e.printStackTrace()
                     }
+                } catch (e: IOException) {
+                    Log.e("HomeFragment", "Error saving image", e)
+                } finally {
+                    image?.close()
                 }
+            }, handler)
 
-                override fun onConfigureFailed(session: CameraCaptureSession) {
-                    Toast.makeText(requireContext(), "Failed to configure camera", Toast.LENGTH_SHORT).show()
+            captureSession!!.capture(captureBuilder.build(), object : CameraCaptureSession.CaptureCallback() {
+                override fun onCaptureCompleted(session: CameraCaptureSession, request: CaptureRequest, result: TotalCaptureResult) {
+                    super.onCaptureCompleted(session, request, result)
+                    Log.d("HomeFragment", "Capture completed")
                 }
             }, handler)
         } catch (e: CameraAccessException) {
-            e.printStackTrace()
+            Log.e("HomeFragment", "Camera access exception", e)
         }
     }
 
@@ -441,8 +417,15 @@ class HomeFragment : Fragment() {
         try {
             output = FileOutputStream(file)
             output.write(bytes)
+            Log.d("HomeFragment", "Image saved: ${file.absolutePath}")
+        } catch (e: IOException) {
+            Log.e("HomeFragment", "Error writing to file", e)
         } finally {
-            output?.close()
+            try {
+                output?.close()
+            } catch (e: IOException) {
+                Log.e("HomeFragment", "Error closing output stream", e)
+            }
         }
     }
 
@@ -450,23 +433,25 @@ class HomeFragment : Fragment() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == REQUEST_PERMISSIONS) {
             if (grantResults.isNotEmpty() && grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
-                startCameraSequence()
+                openCamera()
             } else {
                 Toast.makeText(requireContext(), "Permissions denied", Toast.LENGTH_LONG).show()
             }
         }
     }
+
     private fun fetchImageUrls() {
         val call = apiService.frameFiles()
         call.enqueue(object : Callback<FrameResponse> {
             override fun onResponse(call: Call<FrameResponse>, response: Response<FrameResponse>) {
                 if (response.isSuccessful) {
                     response.body()?.let { imagesResponse ->
-                        val urls = imagesResponse.data.frames.map { "https://705a-223-39-176-104.ngrok-free.app${it.url}" }
+                        val baseUrl = context?.getString(R.string.base_url)
+                        val urls = imagesResponse.data.frames.map { "${baseUrl}${it.url}" }
                         Log.d("FetchImage", "$urls")
                         imageUrls.clear()
                         imageUrls.addAll(urls)
-                        initRecycler()
+                        initRecycler()  // RecyclerView 초기화 호출
                     }
                 } else {
                     Log.e("ImageList", "Failed to fetch image URLs")
@@ -480,15 +465,10 @@ class HomeFragment : Fragment() {
         })
     }
 
-
-
     private fun initRecycler() {
-
-
         val indicatorAdapter = IndicatorAdapter(imageUrls.size) { position ->
-            val imageLoader = ImageLoader.Builder(requireContext())
-                .componentRegistry { add(SvgDecoder(requireContext()))
-                }
+            val imageLoader = coil.ImageLoader.Builder(requireContext())
+                .componentRegistry { add(SvgDecoder(requireContext())) }
                 .build()
 
             val imageRequest = ImageRequest.Builder(requireContext())
@@ -501,36 +481,12 @@ class HomeFragment : Fragment() {
                 )
                 .build()
             imageLoader.enqueue(imageRequest)
-
         }
         binding.indicatorRecyclerView.adapter = indicatorAdapter
         binding.indicatorRecyclerView.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+        binding.indicatorRecyclerView.visibility = View.INVISIBLE  // RecyclerView를 보이지 않도록 설정
     }
 
-    private fun loadImageFromUrl(imageUrl: String, imageView: ImageView) {
-        thread {
-            try {
-                val url = URL(imageUrl)
-                val conn = url.openConnection() as HttpURLConnection
-                conn.doInput = true
-                conn.connect()
-
-                val inputStream: InputStream = conn.inputStream
-                val bitmap = BitmapFactory.decodeStream(inputStream)
-
-                // UI 작업은 메인 스레드에서 수행
-                Handler(Looper.getMainLooper()).post {
-                    Log.d("FetchImage", "$bitmap")
-                    imageView.setImageBitmap(bitmap)
-                }
-
-            } catch (e: MalformedURLException) {
-                e.printStackTrace()
-            } catch (e: IOException) {
-                e.printStackTrace()
-            }
-        }
-    }
     private fun captureFragment(fragment: Fragment): Bitmap? {
         val view = fragment.view ?: return null
         val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
@@ -538,7 +494,6 @@ class HomeFragment : Fragment() {
         view.draw(canvas)
         return bitmap
     }
-
 
     override fun onDestroyView() {
         super.onDestroyView()
