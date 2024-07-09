@@ -24,17 +24,28 @@ interface ApiService {
     @POST("auth/naver")
     fun sendToken(@Body tokenRequest: RegisterData): Call<TokenResponse>
 
-
     @GET("test")
     fun getUserProfile(): Call<NameResponse>
 
     @GET("images/getimage")
     fun listFiles(): Call<ImagesResponse>
 
+    @GET("/api/v1/member/gallery")
+    fun getgalleryFiles(): Call<ImagesResponse>
+
+    @GET("/api/v1/frames")
+    fun frameFiles(): Call<ImagesResponse>
+
+    @GET("/api/v1/member/sticker/personal")
+    fun stickerFiles(): Call<ImagesResponse>
+
     @Multipart
     @POST("images/upload")
     fun uploadFile(@Part file: MultipartBody.Part): Call<ResponseBody>
 
+    @Multipart
+    @POST("images/upload")
+    fun uploadCapture(@Part file: MultipartBody.Part): Call<ResponseBody>
 
     @Multipart
     @POST("/api/v1/sticker/save")

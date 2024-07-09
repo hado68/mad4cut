@@ -4,4 +4,7 @@
     <string name="title_dashboard">Dashboard</string>
     <string name="title_notifications">Notifications</string>
     <string name="title_decoration">Decorations</string>
+    <string name="Gallery">갤러리</string>
+    <string name="Camera">카메라</string>
+    <string name="Sticker">스티커</string>
 </resources>

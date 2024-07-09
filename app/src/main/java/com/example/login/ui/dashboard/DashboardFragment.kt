@@ -132,7 +132,7 @@ class DashboardFragment : Fragment() {
     }
 
     private fun fetchImageUrls() {
-        val call = apiService.listFiles()
+        val call = apiService.getgalleryFiles()
         call.enqueue(object : Callback<ImagesResponse> {
             override fun onResponse(call: Call<ImagesResponse>, response: Response<ImagesResponse>) {
                 if (response.isSuccessful) {
@@ -167,7 +167,7 @@ class DashboardFragment : Fragment() {
         adapter = RecyclerAdapter(imageUrls)
         binding.recyclerview.adapter = adapter
 
-        binding.recyclerview.layoutManager = GridLayoutManager(requireContext(),3)
+        binding.recyclerview.layoutManager = GridLayoutManager(requireContext(),2)
         adapter.setItemClickListener(object : RecyclerAdapter.onItemClickListener {
             override fun onItemClick(position: Int) {
                 //여기서 이미지 클릭시 하게될 행동 쓰기

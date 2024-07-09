@@ -30,5 +30,9 @@
         android:id="@+id/navigation_decoration"
         android:name="com.example.login.ui.decoration.DecorationFragment"
         android:label="@string/title_notifications"
-        tools:layout="@layout/fragment_decoration" />
+        tools:layout="@layout/fragment_decoration">
+        <action
+            android:id="@+id/action_decoration_to_home"
+            app:destination="@id/navigation_home" />
+    </fragment>
 </navigation>

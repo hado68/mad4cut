@@ -10,7 +10,6 @@ import android.graphics.ImageFormat
 import android.graphics.Matrix
 import android.graphics.SurfaceTexture
 import android.hardware.camera2.*
-import android.media.ExifInterface
 import android.media.Image
 import android.media.ImageReader
 import android.os.Bundle
@@ -24,6 +23,7 @@ import android.view.TextureView
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
+import android.widget.TextView
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -37,8 +37,6 @@ import com.example.login.RetrofitClient
 import com.example.login.databinding.FragmentHomeBinding
 import com.example.login.interfaces.ApiService
 import com.example.login.models.ImagesResponse
-import com.example.login.ui.dashboard.RecyclerAdapter
-import com.example.login.ui.decoration.DecorationFragment
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -51,7 +49,6 @@ import java.io.OutputStream
 import java.net.HttpURLConnection
 import java.net.MalformedURLException
 import java.net.URL
-import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.LinkedBlockingQueue
 import kotlin.concurrent.thread
@@ -82,10 +79,11 @@ class HomeFragment : Fragment() {
     private lateinit var cameraManager: CameraManager  // 카메라 매니저 멤버 변수로 선언
 
     private val imageUrls: MutableList<String> = mutableListOf()
-
+    private var isFirstClick = true
     private val apiService: ApiService by lazy {
         RetrofitClient.getClient(requireContext()).create(ApiService::class.java)
     }
+    private lateinit var timerTextView: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -118,7 +116,11 @@ class HomeFragment : Fragment() {
 
         setupTextureListeners()
 
+        timerTextView = binding.timerTextView
+
         binding.startButton.setOnClickListener {
+            binding.nextButton.visibility = View.INVISIBLE
+            binding.startButton.visibility = View.INVISIBLE
             if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA)
                 != PackageManager.PERMISSION_GRANTED ||
                 ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.WRITE_EXTERNAL_STORAGE)
@@ -128,23 +130,35 @@ class HomeFragment : Fragment() {
                     Manifest.permission.WRITE_EXTERNAL_STORAGE
                 ), REQUEST_PERMISSIONS)
             } else {
+                resetCameraSequence()
                 startCameraSequence()
-
             }
         }
+
+
+
         binding.nextButton.setOnClickListener{
-            val bitmap = captureFragment(this@HomeFragment)
-            bitmap?.let {
-                val stream = ByteArrayOutputStream()
-                it.compress(Bitmap.CompressFormat.PNG, 100, stream)
-                val byteArray = stream.toByteArray()
+            if (isFirstClick){
+                binding.indicatorRecyclerView.visibility = View.VISIBLE
+            }else{
+                binding.indicatorRecyclerView.visibility = View.INVISIBLE
+                binding.nextButton.visibility = View.INVISIBLE
+                binding.startButton.visibility = View.INVISIBLE
+                val bitmap = captureFragment(this@HomeFragment)
+                bitmap?.let {
+                    val stream = ByteArrayOutputStream()
+                    it.compress(Bitmap.CompressFormat.PNG, 100, stream)
+                    val byteArray = stream.toByteArray()
 
-                val bundle = Bundle().apply {
-                    putByteArray("image_bitmap", byteArray)
+                    val bundle = Bundle().apply {
+                        putByteArray("image_bitmap", byteArray)
+                    }
+
+                    findNavController().navigate(R.id.action_home_to_decoration, bundle)
                 }
-
-                findNavController().navigate(R.id.action_home_to_decoration, bundle)
             }
+            isFirstClick = !isFirstClick
+
         }
 
     }
@@ -165,6 +179,7 @@ class HomeFragment : Fragment() {
     }
 
     private fun setupTextureListeners() {
+
         textureView1.surfaceTextureListener = createSurfaceTextureListener(textureView1, capturedImage1)
         textureView2.surfaceTextureListener = createSurfaceTextureListener(textureView2, capturedImage2)
         textureView3.surfaceTextureListener = createSurfaceTextureListener(textureView3, capturedImage3)
@@ -197,10 +212,32 @@ class HomeFragment : Fragment() {
     private fun startNextCameraPreview() {
         if (textureViewQueue.isNotEmpty()) {
             val (textureView, capturedImage) = textureViewQueue.poll()
+
+            // TextureView를 나타내고 타이머 시작
+            textureView.visibility = View.VISIBLE
             openCamera(textureView, capturedImage)
+        } else {
+            handler.post {
+                binding.nextButton.visibility = View.VISIBLE
+            }
         }
     }
 
+    private fun startCountdown(onCountdownFinished: () -> Unit) {
+        timerTextView.visibility = View.VISIBLE
+        val countdownTime = 7
+        val countdownHandler = Handler(Looper.getMainLooper())
+
+        for (i in countdownTime downTo 1) {
+            countdownHandler.postDelayed({
+                timerTextView.text = (i - 2).toString()
+                if (i == 1) {
+                    onCountdownFinished()
+                    timerTextView.visibility = View.GONE
+                }
+            }, ((countdownTime - i) * 1000).toLong())
+        }
+    }
 
     private fun openCamera(textureView: TextureView, capturedImage: ImageView) {
         val cameraManager = requireActivity().getSystemService(CAMERA_SERVICE) as CameraManager
@@ -216,33 +253,93 @@ class HomeFragment : Fragment() {
             cameraManager.openCamera(cameraId, object : CameraDevice.StateCallback() {
                 override fun onOpened(camera: CameraDevice) {
                     cameraDevice = camera
-                    val texture = textureView.surfaceTexture!!
-                    texture.setDefaultBufferSize(previewSize.width, previewSize.height)
-                    val surface = Surface(texture)
-                    val captureRequestBuilder = camera.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
-                    captureRequestBuilder.addTarget(surface)
-                    camera.createCaptureSession(listOf(surface), object : CameraCaptureSession.StateCallback() {
-                        override fun onConfigured(session: CameraCaptureSession) {
-                            captureSession = session
-                            session.setRepeatingRequest(captureRequestBuilder.build(), null, handler)
-                            handler.postDelayed({ takePicture(textureView, capturedImage) }, 5000)
-                        }
+                    try {
+                        val texture = textureView.surfaceTexture ?: return
+                        texture.setDefaultBufferSize(previewSize.width, previewSize.height)
+                        val surface = Surface(texture)
+                        val captureRequestBuilder = camera.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
+                        captureRequestBuilder.addTarget(surface)
+                        camera.createCaptureSession(listOf(surface), object : CameraCaptureSession.StateCallback() {
+                            override fun onConfigured(session: CameraCaptureSession) {
+                                if (cameraDevice == null) return  // 추가된 null 체크
+                                captureSession = session
+                                try {
+                                    session.setRepeatingRequest(captureRequestBuilder.build(), null, handler)
+                                    startCountdown { takePicture(textureView, capturedImage) }
+                                } catch (e: CameraAccessException) {
+                                    e.printStackTrace()
+                                    closeCamera()
+                                }
+                            }
 
-                        override fun onConfigureFailed(session: CameraCaptureSession) {}
-                    }, handler)
+                            override fun onConfigureFailed(session: CameraCaptureSession) {
+                                closeCamera()
+                            }
+                        }, handler)
+                    } catch (e: CameraAccessException) {
+                        e.printStackTrace()
+                        closeCamera()
+                    }
                 }
 
                 override fun onDisconnected(camera: CameraDevice) {
-                    camera.close()
+                    cameraDevice?.close()
+                    cameraDevice = null  // cameraDevice를 null로 설정
+                    Log.e("Camera", "Camera device disconnected")
                 }
 
                 override fun onError(camera: CameraDevice, error: Int) {
                     camera.close()
+                    cameraDevice = null  // cameraDevice를 null로 설정
+                    Log.e("Camera", "Error opening camera: $error")
+                    if (error == ERROR_CAMERA_DEVICE || error == ERROR_CAMERA_SERVICE) {
+                        closeCamera()
+                        openCamera(textureView, capturedImage)
+                    }
                 }
-            }, null)
+            }, handler)
         } catch (e: CameraAccessException) {
             e.printStackTrace()
         }
+    }
+
+    private fun closeCamera() {
+        captureSession?.close()
+        captureSession = null
+        cameraDevice?.close()
+        cameraDevice = null
+    }
+    override fun onPause() {
+        super.onPause()
+        closeCamera()
+    }
+    override fun onResume() {
+        super.onResume()
+        if (textureView1.isAvailable) {
+            setupTextureListeners()
+        }
+        resetCameraSequence()
+        binding.startButton.visibility = View.VISIBLE
+        binding.nextButton.visibility = View.INVISIBLE
+    }
+
+    // 카메라 시퀀스 초기화 메서드 추가
+    private fun resetCameraSequence() {
+        textureViewQueue.clear()
+        textureViewQueue.offer(Pair(textureView1, capturedImage1))
+        textureViewQueue.offer(Pair(textureView2, capturedImage2))
+        textureViewQueue.offer(Pair(textureView3, capturedImage3))
+        textureViewQueue.offer(Pair(textureView4, capturedImage4))
+
+        capturedImage1.visibility = View.GONE
+        capturedImage2.visibility = View.GONE
+        capturedImage3.visibility = View.GONE
+        capturedImage4.visibility = View.GONE
+
+        textureView1.visibility = View.VISIBLE
+        textureView2.visibility = View.VISIBLE
+        textureView3.visibility = View.VISIBLE
+        textureView4.visibility = View.VISIBLE
     }
 
     private fun takePicture(textureView: TextureView, capturedImage: ImageView) {
@@ -348,7 +445,7 @@ class HomeFragment : Fragment() {
         }
     }
     private fun fetchImageUrls() {
-        val call = apiService.listFiles()
+        val call = apiService.frameFiles()
         call.enqueue(object : Callback<ImagesResponse> {
             override fun onResponse(call: Call<ImagesResponse>, response: Response<ImagesResponse>) {
                 if (response.isSuccessful) {
@@ -373,20 +470,20 @@ class HomeFragment : Fragment() {
 
 
 
-        private fun initRecycler() {
-            imageUrls.add("https://search.pstatic.net/common/?src=http%3A%2F%2Fblogfiles.naver.net%2FMjAyNDA2MDRfMTEg%2FMDAxNzE3NDY3OTU0NjQ3.manwzdw7qWGewwwO_hFRmbTUh19i5bw8LyreA2zoYk4g.VsLhsUk4osPUU0IxhF2z1xIXoWOyGJkyFl7C0Okkrb8g.PNG%2Fv2.PNG&type=a340")
-            imageUrls.add("https://search.pstatic.net/common/?src=http%3A%2F%2Fblogfiles.naver.net%2FMjAyNDAzMDVfMjUw%2FMDAxNzA5NjM0NDc5NjM3.ZTlyfczxfjQL_VKukur1s8AWQd4DeuO8qMnAp6mdmaMg.clBh_0nDh-Ox3uX7-zug3ezWMATU66QBQc4gRxzSpZ4g.JPEG%2FIMG_3512.jpg&type=a340")
-            imageUrls.add("https://search.pstatic.net/sunny/?src=https%3A%2F%2Fw7.pngwing.com%2Fpngs%2F885%2F946%2Fpng-transparent-groudon-darkrai-pokedex-pokemon-giratina-pokemon-seafood-fictional-character-crab.png&type=a340")
-            imageUrls.add("https://search.pstatic.net/sunny/?src=https%3A%2F%2Fi.namu.wiki%2Fi%2F1Ogotf36_OmhfkNY4gR7Mm_PqdDX8BOEU2qUKhL1SgAnYDsRBbzdS57G4SMqMxypVYDQsP0GSnOoEKD7n3JXhQ.webp&type=a340")
-            imageUrls.add("https://search.pstatic.net/common/?src=http%3A%2F%2Fblogfiles.naver.net%2FMjAyNDA0MDlfMTk1%2FMDAxNzEyNjUwMDE1NDk3.vtwekxMeNXbVniVziotwGp-OnxBi1u2LdFSpFgCKiE8g.dP2UWN2IVNTZHmSy4GYROBDgE9YbyhUsw6m7tWIOt0wg.JPEG%2Fbandicam_2024-04-09_17-06-24-112.jpg&type=a340")
-            imageUrls.add("https://search.pstatic.net/sunny/?src=https%3A%2F%2Fw7.pngwing.com%2Fpngs%2F866%2F884%2Fpng-transparent-pokemon-x-and-y-pokemon-heartgold-and-soulsilver-pokemon-sun-and-moon-pokemon-crystal-lugia-lugia-pokemon-mammal-vertebrate-cartoon.png&type=a340")
+    private fun initRecycler() {
+        imageUrls.add("https://search.pstatic.net/common/?src=http%3A%2F%2Fblogfiles.naver.net%2FMjAyNDA2MDRfMTEg%2FMDAxNzE3NDY3OTU0NjQ3.manwzdw7qWGewwwO_hFRmbTUh19i5bw8LyreA2zoYk4g.VsLhsUk4osPUU0IxhF2z1xIXoWOyGJkyFl7C0Okkrb8g.PNG%2Fv2.PNG&type=a340")
+        imageUrls.add("https://search.pstatic.net/common/?src=http%3A%2F%2Fblogfiles.naver.net%2FMjAyNDAzMDVfMjUw%2FMDAxNzA5NjM0NDc5NjM3.ZTlyfczxfjQL_VKukur1s8AWQd4DeuO8qMnAp6mdmaMg.clBh_0nDh-Ox3uX7-zug3ezWMATU66QBQc4gRxzSpZ4g.JPEG%2FIMG_3512.jpg&type=a340")
+        imageUrls.add("https://search.pstatic.net/sunny/?src=https%3A%2F%2Fw7.pngwing.com%2Fpngs%2F885%2F946%2Fpng-transparent-groudon-darkrai-pokedex-pokemon-giratina-pokemon-seafood-fictional-character-crab.png&type=a340")
+        imageUrls.add("https://search.pstatic.net/sunny/?src=https%3A%2F%2Fi.namu.wiki%2Fi%2F1Ogotf36_OmhfkNY4gR7Mm_PqdDX8BOEU2qUKhL1SgAnYDsRBbzdS57G4SMqMxypVYDQsP0GSnOoEKD7n3JXhQ.webp&type=a340")
+        imageUrls.add("https://search.pstatic.net/common/?src=http%3A%2F%2Fblogfiles.naver.net%2FMjAyNDA0MDlfMTk1%2FMDAxNzEyNjUwMDE1NDk3.vtwekxMeNXbVniVziotwGp-OnxBi1u2LdFSpFgCKiE8g.dP2UWN2IVNTZHmSy4GYROBDgE9YbyhUsw6m7tWIOt0wg.JPEG%2Fbandicam_2024-04-09_17-06-24-112.jpg&type=a340")
+        imageUrls.add("https://search.pstatic.net/sunny/?src=https%3A%2F%2Fw7.pngwing.com%2Fpngs%2F866%2F884%2Fpng-transparent-pokemon-x-and-y-pokemon-heartgold-and-soulsilver-pokemon-sun-and-moon-pokemon-crystal-lugia-lugia-pokemon-mammal-vertebrate-cartoon.png&type=a340")
 
-            val indicatorAdapter = IndicatorAdapter(imageUrls.size) { position ->
-                loadImageFromUrl(imageUrls[position], binding.backgroundImage)
-            }
-            binding.indicatorRecyclerView.adapter = indicatorAdapter
-            binding.indicatorRecyclerView.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+        val indicatorAdapter = IndicatorAdapter(imageUrls.size) { position ->
+            loadImageFromUrl(imageUrls[position], binding.backgroundImage)
         }
+        binding.indicatorRecyclerView.adapter = indicatorAdapter
+        binding.indicatorRecyclerView.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+    }
 
     private fun loadImageFromUrl(imageUrl: String, imageView: ImageView) {
         thread {

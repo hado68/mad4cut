@@ -4,7 +4,9 @@ import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -22,20 +24,32 @@ import android.widget.ImageView
 import android.widget.RelativeLayout
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.constraintlayout.widget.ConstraintSet
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.login.R
 import com.example.login.RetrofitClient
 import com.example.login.databinding.FragmentDecorationBinding
 import com.example.login.interfaces.ApiService
+import com.example.login.models.ImagesResponse
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
+import okhttp3.ResponseBody
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
 import java.io.InputStream
+import java.io.OutputStream
 import java.net.HttpURLConnection
 import java.net.MalformedURLException
 import java.net.URL
@@ -80,7 +94,7 @@ class DecorationFragment : Fragment(){
 
         recyclerView.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
 
-
+        fetchImageUrls()
         initRecycler()
         recyclerView.visibility = View.VISIBLE
         isRecyclerViewVisible = true
@@ -93,6 +107,22 @@ class DecorationFragment : Fragment(){
             }
             isRecyclerViewVisible = !isRecyclerViewVisible
         }
+
+        binding.download.setOnClickListener{
+            toggleButton.visibility = View.INVISIBLE
+            recyclerView.visibility = View.INVISIBLE
+            binding.download.visibility = View.INVISIBLE
+            val bitmap = captureFragment(this)
+            bitmap?.let {
+                val file = bitmapToFile(it)
+                uploadFile(file)
+                findNavController().navigate(R.id.action_decoration_to_home)
+            }
+            toggleButton.visibility = View.VISIBLE
+            recyclerView.visibility = View.VISIBLE
+            binding.download.visibility = View.VISIBLE
+        }
+
     }
 
 
@@ -117,6 +147,29 @@ class DecorationFragment : Fragment(){
             }
         })
 
+    }
+    private fun fetchImageUrls() {
+        val call = apiService.stickerFiles()
+        call.enqueue(object : Callback<ImagesResponse> {
+            override fun onResponse(call: Call<ImagesResponse>, response: Response<ImagesResponse>) {
+                if (response.isSuccessful) {
+                    response.body()?.let { imagesResponse ->
+                        val urls = imagesResponse.data.images.map { "https://b0b1-223-39-176-107.ngrok-free.app${it.url}" }
+                        Log.d("FetchImage", "$urls")
+                        imageUrls.clear()
+                        imageUrls.addAll(urls)
+                        initRecycler()
+                    }
+                } else {
+                    Log.e("ImageList", "Failed to fetch image URLs")
+                }
+            }
+
+            override fun onFailure(call: Call<ImagesResponse>, t: Throwable) {
+                t.printStackTrace()
+                Log.e("ImageList", "Failed to fetch image URLs")
+            }
+        })
     }
     private fun addDraggableImageView(imageUrl: String) {
         val imageView = ImageView(requireContext()).apply {
@@ -228,5 +281,50 @@ class DecorationFragment : Fragment(){
                 e.printStackTrace()
             }
         }
+    }
+    private fun uploadFile(file: File) {
+        val requestBody = RequestBody.create("multipart/form-data".toMediaTypeOrNull(), file)
+        val body = MultipartBody.Part.createFormData("file", file.name, requestBody)
+        val call = apiService.uploadCapture(body)
+        call.enqueue(object : Callback<ResponseBody> {
+            override fun onResponse(call: Call<ResponseBody>, response: Response<ResponseBody>) {
+                if (response.isSuccessful) {
+                    Log.d("FileUpload", "File uploaded successfully")
+                } else {
+                    Log.e("FileUpload", "File upload failed")
+                }
+            }
+
+            override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
+                t.printStackTrace()
+                Log.e("FileUpload", "File upload failed")
+            }
+        })
+    }
+    private fun bitmapToFile(bitmap: Bitmap): File {
+        // 이미지 파일이 저장될 디렉토리
+        val filesDir = requireContext().filesDir
+        // 파일 이름 및 경로 설정
+        val imageFile = File(filesDir, "captured_image.png")
+
+        // 파일 출력 스트림 생성 및 비트맵을 PNG 형식으로 저장
+        val os: OutputStream
+        try {
+            os = FileOutputStream(imageFile)
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, os)
+            os.flush()
+            os.close()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        return imageFile
+    }
+    private fun captureFragment(fragment: Fragment): Bitmap? {
+        val view = fragment.view ?: return null
+        val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        view.draw(canvas)
+        return bitmap
     }
 }
