@@ -13,11 +13,9 @@ import com.example.login.RetrofitClient
 import com.example.login.databinding.FragmentNotificationsBinding
 import com.example.login.interfaces.ApiService
 import com.example.login.models.*
-import com.example.login.ui.dashboard.StickerAdapter
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
-import okhttp3.ResponseBody
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -28,10 +26,10 @@ class NotificationsFragment : Fragment(), StickerAdapter.OnItemClickListener {
     private var _binding: FragmentNotificationsBinding? = null
     private val binding get() = _binding!!
     private val PICK_IMAGE_REQUEST = 1
-    private val personalStickers: MutableList<Sticker> = mutableListOf()
-    private val sharedStickers: MutableList<Sticker> = mutableListOf()
-    private val combinedStickers: MutableList<Sticker> = mutableListOf()
-    private lateinit var adapter: StickerAdapter
+    private val personalStickers: MutableList<String> = mutableListOf()
+    private val sharedStickers: MutableList<String> = mutableListOf()
+    private val combinedStickers: MutableList<String> = mutableListOf()
+    private var adapter: StickerAdapter? = null
     private val spanCount = 3
     private val apiService: ApiService by lazy {
         RetrofitClient.getClient(requireContext()).create(ApiService::class.java)
@@ -128,7 +126,7 @@ class NotificationsFragment : Fragment(), StickerAdapter.OnItemClickListener {
                 if (response.isSuccessful) {
                     response.body()?.data?.stickers?.let { stickers ->
                         personalStickers.clear()
-                        personalStickers.addAll(stickers)
+                        personalStickers.addAll(stickers.map { "https://b0b1-223-39-176-107.ngrok-free.app${it.url}" })
                         combineStickers()
                     }
                 } else {
@@ -150,7 +148,7 @@ class NotificationsFragment : Fragment(), StickerAdapter.OnItemClickListener {
                 if (response.isSuccessful) {
                     response.body()?.data?.stickers?.let { stickers ->
                         sharedStickers.clear()
-                        sharedStickers.addAll(stickers)
+                        sharedStickers.addAll(stickers.map { "https://705a-223-39-176-104.ngrok-free.app${it.url}" })
                         combineStickers()
                     }
                 } else {
@@ -172,58 +170,70 @@ class NotificationsFragment : Fragment(), StickerAdapter.OnItemClickListener {
         val emptyCount = spanCount - (personalStickers.size % spanCount)
         if (emptyCount != spanCount) {
             for (i in 0 until emptyCount) {
-                combinedStickers.add(Sticker(-1L, "", false)) // Add empty stickers
+                combinedStickers.add("") // Add empty stickers
             }
         }
 
         combinedStickers.addAll(sharedStickers)
-        adapter.notifyDataSetChanged()
+        adapter?.notifyDataSetChanged()
     }
 
-    private fun shareSticker(stickerId: Long) {
-        val requestData = ShareStickerRequest(stickerId)
-        val call = apiService.shareSticker(requestData)
-        call.enqueue(object : Callback<ApiResponse<SharedStickerInfo>> {
-            override fun onResponse(call: Call<ApiResponse<SharedStickerInfo>>, response: Response<ApiResponse<SharedStickerInfo>>) {
-                if (response.isSuccessful) {
-                    Log.d("ShareSticker", "Sticker shared successfully")
-                    fetchSharedStickers() // Refresh shared stickers after sharing
-                } else {
+    private fun shareSticker(url: String) {
+        val stickerId = extractStickerIdFromUrl(url)
+        if (stickerId != null) {
+            val requestData = ShareStickerRequest(stickerId)
+            val call = apiService.shareSticker(requestData)
+            call.enqueue(object : Callback<ApiResponse<SharedStickerInfo>> {
+                override fun onResponse(call: Call<ApiResponse<SharedStickerInfo>>, response: Response<ApiResponse<SharedStickerInfo>>) {
+                    if (response.isSuccessful) {
+                        Log.d("ShareSticker", "Sticker shared successfully")
+                        fetchSharedStickers() // Refresh shared stickers after sharing
+                    } else {
+                        Log.e("ShareSticker", "Sticker sharing failed")
+                    }
+                }
+
+                override fun onFailure(call: Call<ApiResponse<SharedStickerInfo>>, t: Throwable) {
+                    t.printStackTrace()
                     Log.e("ShareSticker", "Sticker sharing failed")
                 }
-            }
-
-            override fun onFailure(call: Call<ApiResponse<SharedStickerInfo>>, t: Throwable) {
-                t.printStackTrace()
-                Log.e("ShareSticker", "Sticker sharing failed")
-            }
-        })
+            })
+        }
     }
 
-    private fun deleteSticker(stickerId: Long) {
-        val call = apiService.deleteSticker(stickerId)
-        call.enqueue(object : Callback<ApiResponse<Void>> {
-            override fun onResponse(call: Call<ApiResponse<Void>>, response: Response<ApiResponse<Void>>) {
-                if (response.isSuccessful) {
-                    Log.d("DeleteSticker", "Sticker deleted successfully")
-                    fetchPersonalStickers() // Refresh personal stickers after deletion
-                } else {
+    private fun deleteSticker(url: String) {
+        val stickerId = extractStickerIdFromUrl(url)
+        if (stickerId != null) {
+            val call = apiService.deleteSticker(stickerId)
+            call.enqueue(object : Callback<ApiResponse<Void>> {
+                override fun onResponse(call: Call<ApiResponse<Void>>, response: Response<ApiResponse<Void>>) {
+                    if (response.isSuccessful) {
+                        Log.d("DeleteSticker", "Sticker deleted successfully")
+                        fetchPersonalStickers() // Refresh personal stickers after deletion
+                    } else {
+                        Log.e("DeleteSticker", "Sticker deletion failed")
+                    }
+                }
+
+                override fun onFailure(call: Call<ApiResponse<Void>>, t: Throwable) {
+                    t.printStackTrace()
                     Log.e("DeleteSticker", "Sticker deletion failed")
                 }
-            }
-
-            override fun onFailure(call: Call<ApiResponse<Void>>, t: Throwable) {
-                t.printStackTrace()
-                Log.e("DeleteSticker", "Sticker deletion failed")
-            }
-        })
+            })
+        }
     }
 
     private fun initRecycler() {
+        // Add dummy data
+        sharedStickers.add("https://postfiles.pstatic.net/20141106_49/bsh040817_1415273770472wqcn7_PNG/PGL_Mega-Bisaflor.png?type=w2")
+        personalStickers.add("https://postfiles.pstatic.net/20141106_49/bsh040817_1415273770472wqcn7_PNG/PGL_Mega-Bisaflor.png?type=w2")
+
+        combineStickers()
+
         adapter = StickerAdapter(combinedStickers, spanCount)
         binding.recyclerview.adapter = adapter
         binding.recyclerview.layoutManager = GridLayoutManager(requireContext(), spanCount)
-        adapter.setItemClickListener(this)
+        adapter?.setItemClickListener(this)
     }
 
     override fun onItemClick(position: Int) {
@@ -241,20 +251,27 @@ class NotificationsFragment : Fragment(), StickerAdapter.OnItemClickListener {
 
     override fun onContextItemSelected(item: MenuItem): Boolean {
         val position = item.groupId
-        val sticker = combinedStickers[position]
-        if (sticker.id == -1L) return super.onContextItemSelected(item) // Ignore empty stickers
+        val url = combinedStickers[position]
+        if (url.isEmpty()) return super.onContextItemSelected(item) // Ignore empty stickers
 
         return when (item.itemId) {
             R.id.context_menu_share -> {
-                shareSticker(sticker.id)
+                shareSticker(url)
                 true
             }
             R.id.context_menu_delete -> {
-                deleteSticker(sticker.id)
+                deleteSticker(url)
                 true
             }
             else -> super.onContextItemSelected(item)
         }
+    }
+
+    private fun extractStickerIdFromUrl(url: String): Long? {
+        // Logic to extract sticker ID from the URL
+        val regex = "/images/(\\d+)_".toRegex()
+        val matchResult = regex.find(url)
+        return matchResult?.groupValues?.get(1)?.toLongOrNull()
     }
 
     override fun onDestroyView() {

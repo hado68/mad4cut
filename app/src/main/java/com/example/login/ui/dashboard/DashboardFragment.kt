@@ -62,11 +62,6 @@ class DashboardFragment : Fragment() {
         val root: View = binding.root
         fetchImageUrls()
 
-        val uploadButton = binding.imagesendbutton
-
-        uploadButton.setOnClickListener {
-            openImageChooser()
-        }
         initRecycler()
         return root
     }
@@ -132,12 +127,12 @@ class DashboardFragment : Fragment() {
     }
 
     private fun fetchImageUrls() {
-        val call = apiService.listFiles()
+        val call = apiService.getgalleryFiles()
         call.enqueue(object : Callback<ImagesResponse> {
             override fun onResponse(call: Call<ImagesResponse>, response: Response<ImagesResponse>) {
                 if (response.isSuccessful) {
                     response.body()?.let { imagesResponse ->
-                        val urls = imagesResponse.data.images.map { "https://b0b1-223-39-176-107.ngrok-free.app${it.url}" }
+                        val urls = imagesResponse.data.images.map { "https://705a-223-39-176-104.ngrok-free.app${it.url}" }
                         Log.d("FetchImage", "$urls")
                         imageUrls.clear()
                         imageUrls.addAll(urls)
@@ -167,7 +162,7 @@ class DashboardFragment : Fragment() {
         adapter = RecyclerAdapter(imageUrls)
         binding.recyclerview.adapter = adapter
 
-        binding.recyclerview.layoutManager = GridLayoutManager(requireContext(),3)
+        binding.recyclerview.layoutManager = GridLayoutManager(requireContext(),2)
         adapter.setItemClickListener(object : RecyclerAdapter.onItemClickListener {
             override fun onItemClick(position: Int) {
                 //여기서 이미지 클릭시 하게될 행동 쓰기

@@ -1,7 +1,7 @@
 package com.example.login.models
 
 data class ImageData(
-    val id: Int,
+    val id: Long,
     val url: String
 )
 

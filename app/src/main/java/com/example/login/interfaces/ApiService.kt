@@ -1,6 +1,7 @@
 package com.example.login.interfaces
 
 import com.example.login.models.ApiResponse
+import com.example.login.models.FrameResponse
 import com.example.login.models.ImagesResponse
 import com.example.login.models.NameResponse
 import com.example.login.models.RegisterData
@@ -21,20 +22,26 @@ import retrofit2.http.Part
 import retrofit2.http.Path
 
 interface ApiService {
-    @POST("auth/naver")
+    @POST("/api/v1/member/login")
     fun sendToken(@Body tokenRequest: RegisterData): Call<TokenResponse>
 
 
-    @GET("test")
-    fun getUserProfile(): Call<NameResponse>
+    @GET("/api/v1/member/gallery")
+    fun getgalleryFiles(): Call<ImagesResponse>
 
-    @GET("images/getimage")
-    fun listFiles(): Call<ImagesResponse>
+    @GET("/api/v1/frames")
+    fun frameFiles(): Call<FrameResponse>
+
+    @GET("/api/v1/member/sticker/personal")
+    fun stickerFiles(): Call<ImagesResponse>
 
     @Multipart
     @POST("images/upload")
     fun uploadFile(@Part file: MultipartBody.Part): Call<ResponseBody>
 
+    @Multipart
+    @POST("/api/v1/member/gallery/save")
+    fun uploadCapture(@Part file: MultipartBody.Part): Call<ResponseBody>
 
     @Multipart
     @POST("/api/v1/sticker/save")

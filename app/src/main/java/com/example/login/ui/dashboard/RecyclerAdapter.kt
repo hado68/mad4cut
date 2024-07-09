@@ -33,12 +33,15 @@ class RecyclerAdapter(val items: MutableList<String>) :
         viewType: Int
     ): RecyclerAdapter.ViewHolder {
         val v =
-            LayoutInflater.from(parent.context).inflate(R.layout.item_recyclerview, parent, false)
+            LayoutInflater.from(parent.context).inflate(R.layout.item_recycler_gallery, parent, false)
         return ViewHolder(v)
     }
 
     // 생성된 View Holder에 데이터를 바인딩 해주는 메서드
     override fun onBindViewHolder(holder: RecyclerAdapter.ViewHolder, position: Int) {
+        holder.itemView.setOnClickListener {
+            itemClickListener.onItemClick(position)
+        }
         holder.bindItems(items[position])
     }
 

@@ -1,4 +1,4 @@
-package com.example.login.ui.dashboard
+package com.example.login.ui.notifications
 
 import android.view.ContextMenu
 import android.view.LayoutInflater
@@ -8,10 +8,9 @@ import android.widget.ImageView
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.login.R
-import com.example.login.models.Sticker
 
 class StickerAdapter(
-    private val items: MutableList<Sticker>,
+    private val items: MutableList<String>,
     private val spanCount: Int
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
@@ -26,7 +25,7 @@ class StickerAdapter(
     }
 
     override fun getItemViewType(position: Int): Int {
-        return if (items[position].id == -1L) {
+        return if (items[position].isEmpty()) {
             VIEW_TYPE_EMPTY
         } else {
             VIEW_TYPE_STICKER
@@ -60,9 +59,9 @@ class StickerAdapter(
             itemView.setOnCreateContextMenuListener(this)
         }
 
-        fun bindItems(item: Sticker, clickListener: OnItemClickListener) {
+        fun bindItems(item: String, clickListener: OnItemClickListener) {
             Glide.with(itemView.context)
-                .load("https://b0b1-223-39-176-107.ngrok-free.app${item.url}")
+                .load(item)
                 .into(imageArea)
 
             itemView.setOnClickListener {
