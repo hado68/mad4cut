@@ -100,21 +100,6 @@ class HomeFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         fetchImageUrls()
-        val imageLoader = ImageLoader.Builder(requireContext())
-            .componentRegistry { add(SvgDecoder(requireContext()))
-            }
-            .build()
-
-        val imageRequest = ImageRequest.Builder(requireContext())
-            .data("https://b732-223-39-177-253.ngrok-free.app/frames/1.svg")
-            .target(
-                onSuccess = { result ->
-                    val bitmap = (result as BitmapDrawable).bitmap
-                    binding.backgroundImage.setImageBitmap(bitmap)
-                },
-            )
-            .build()
-        imageLoader.enqueue(imageRequest)
         handler = Handler()
 
         initRecycler()
@@ -129,6 +114,21 @@ class HomeFragment : Fragment() {
         timerTextView = binding.timerTextView
 
         binding.startButton.setOnClickListener {
+            val imageLoader = ImageLoader.Builder(requireContext())
+                .componentRegistry { add(SvgDecoder(requireContext()))
+                }
+                .build()
+
+            val imageRequest = ImageRequest.Builder(requireContext())
+                .data("https://b732-223-39-177-253.ngrok-free.app/frames/2.svg")
+                .target(
+                    onSuccess = { result ->
+                        val bitmap = (result as BitmapDrawable).bitmap
+                        binding.backgroundImage.setImageBitmap(bitmap)
+                    },
+                )
+                .build()
+            imageLoader.enqueue(imageRequest)
             Log.d("HomeFragment", "Start button clicked")
             binding.nextButton.visibility = View.INVISIBLE
             binding.startButton.visibility = View.INVISIBLE
