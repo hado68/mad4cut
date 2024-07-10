@@ -10,10 +10,11 @@
             android:id="@+id/backgroundImage"
             android:layout_width="0dp"
             android:layout_height="0dp"
+            android:layout_marginBottom="50dp"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent" />
+            app:layout_constraintEnd_toEndOf="parent"/>
         <ImageButton
             android:id="@+id/button_toggle"
             android:layout_width="110dp"

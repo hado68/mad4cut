@@ -9,6 +9,5 @@
         android:id="@+id/circle_view"
         android:layout_width="30dp"
         android:layout_height="30dp"
-        android:background="@drawable/ic_launcher_background"
         android:layout_margin="10dp"/>
 </LinearLayout>

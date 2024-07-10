@@ -9,13 +9,13 @@
         android:id="@+id/backgroundImage"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:scaleType="centerCrop"
-        android:paddingBottom="50dp"
+        android:layout_marginBottom="50dp"
         android:background="@drawable/home_initial"
-        app:layout_constraintTop_toTopOf="parent"
+        android:scaleType="centerCrop"
         app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintTop_toTopOf="parent" />
 
     <!-- 배경 이미지 위에 배치될 내용들 -->
 

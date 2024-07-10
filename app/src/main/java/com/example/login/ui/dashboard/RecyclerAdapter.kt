@@ -50,7 +50,11 @@ class RecyclerAdapter(val items: MutableList<String>) :
     override fun getItemCount(): Int {
         return items.count()
     }
-
+    fun updateData(newImageUrls: List<String>) {
+        items.clear()
+        items.addAll(newImageUrls)
+        notifyDataSetChanged()
+    }
     // 화면에 표시 될 뷰를 저장하는 역할
     // View들을 재활용 하기 위해 각 요소를 저장해두고 사용한다.
     inner class ViewHolder(itemView: View) :

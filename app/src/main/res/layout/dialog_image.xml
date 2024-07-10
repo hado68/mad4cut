@@ -4,7 +4,8 @@
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="16dp"
+    android:backgroundTint="@color/ibory">
 
     <ImageView
         android:id="@+id/dialog_image_view"
