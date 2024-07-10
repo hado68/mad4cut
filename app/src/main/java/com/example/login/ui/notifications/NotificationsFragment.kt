@@ -127,8 +127,10 @@ class NotificationsFragment : Fragment() {
                 response: Response<StickerResponse>
             ) {
                 if (response.isSuccessful) {
+                    val baseUrl = context?.getString(R.string.base_url)
+
                     response.body()?.let { imagesResponse ->
-                        val urls = imagesResponse.data.stickers.map { "https://b732-223-39-177-253.ngrok-free.app${it.url}" }
+                        val urls = imagesResponse.data.stickers.map { "$baseUrl${it.url}" }
                         Log.d("FetchImage", "$urls")
                         // 어댑터에 새 데이터 설정
                         adapter.updateData(urls)

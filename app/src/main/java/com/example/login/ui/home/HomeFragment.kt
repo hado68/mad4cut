@@ -122,19 +122,23 @@ class HomeFragment : Fragment() {
                 }
                 .build()
 
+            val baseUrl = context?.getString(R.string.base_url)
+
             val imageRequest = ImageRequest.Builder(requireContext())
-                .data("https://b732-223-39-177-253.ngrok-free.app/frames/2.svg")
+                .data("$baseUrl/frames/2.svg")
                 .target(
                     onSuccess = { result ->
                         val bitmap = (result as BitmapDrawable).bitmap
-                        binding.backgroundImage.setImageBitmap(bitmap)
+                        _binding?.backgroundImage?.setImageBitmap(bitmap)
                     },
                 )
                 .build()
             imageLoader.enqueue(imageRequest)
             Log.d("HomeFragment", "Start button clicked")
-            binding.nextButton.visibility = View.INVISIBLE
-            binding.startButton.visibility = View.INVISIBLE
+            _binding?.let {
+                it.nextButton.visibility = View.INVISIBLE
+                it.startButton.visibility = View.INVISIBLE
+            }
             if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA)
                 != PackageManager.PERMISSION_GRANTED ||
                 ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.WRITE_EXTERNAL_STORAGE)
@@ -153,12 +157,13 @@ class HomeFragment : Fragment() {
             Log.d("HomeFragment", "Next button clicked")
             if (isFirstClick) {
                 Log.d("HomeFragment", "Next button clicked")
-
-                binding.indicatorRecyclerView.visibility = View.VISIBLE
+                _binding?.indicatorRecyclerView?.visibility = View.VISIBLE
             } else {
-                binding.indicatorRecyclerView.visibility = View.INVISIBLE
-                binding.nextButton.visibility = View.INVISIBLE
-                binding.startButton.visibility = View.INVISIBLE
+                _binding?.let {
+                    it.indicatorRecyclerView.visibility = View.INVISIBLE
+                    it.nextButton.visibility = View.INVISIBLE
+                    it.startButton.visibility = View.INVISIBLE
+                }
                 val bitmap = captureFragment(this@HomeFragment)
                 if (bitmap != null) {
                     saveImageAndPath(requireContext(), bitmap)
@@ -230,8 +235,8 @@ class HomeFragment : Fragment() {
         } else {
             handler.post {
                 Log.d("HomeFragment", "All captures completed, showing next button")
-                binding.nextButton.visibility = View.VISIBLE
-                Log.d("HomeFragment", "Next button visibility: ${binding.nextButton.visibility}")
+                _binding?.nextButton?.visibility = View.VISIBLE
+                Log.d("HomeFragment", "Next button visibility: ${_binding?.nextButton?.visibility}")
                 closeCamera()
             }
         }
@@ -239,17 +244,17 @@ class HomeFragment : Fragment() {
 
     private fun startCountdown(onCountdownFinished: () -> Unit) {
         Log.d("HomeFragment", "Starting countdown")
-        timerTextView.visibility = View.VISIBLE
+        _binding?.timerTextView?.visibility = View.VISIBLE
         val countdownTime = 7
         val countdownHandler = Handler(Looper.getMainLooper())
 
         for (i in countdownTime downTo 1) {
             countdownHandler.postDelayed({
-                timerTextView.text = (i - 2).toString()
+                _binding?.timerTextView?.text = (i - 2).toString()
                 if (i == 1) {
                     Log.d("HomeFragment", "Countdown finished")
                     onCountdownFinished()
-                    timerTextView.visibility = View.GONE
+                    _binding?.timerTextView?.visibility = View.GONE
                 }
             }, ((countdownTime - i) * 1000).toLong())
         }
@@ -332,11 +337,11 @@ class HomeFragment : Fragment() {
         cameraDevice = null
         imageReader?.close()
         imageReader = null
-        // TextureView를 숨기도록 추가
+
+        // 핸들러 작업을 안전하게 취소하고 null 체크 후 접근
         handler.post {
             Log.d("HomeFragment", "Closing camera")
             textureView.visibility = View.GONE
-            // 캡처된 이미지가 보이도록 설정
             _binding?.let { binding ->
                 if (capturedBitmaps.size > 0) binding.capturedImage1.setImageBitmap(capturedBitmaps[0])
                 if (capturedBitmaps.size > 1) binding.capturedImage2.setImageBitmap(capturedBitmaps[1])
@@ -352,30 +357,26 @@ class HomeFragment : Fragment() {
     }
 
 
-    override fun onPause() {
-        super.onPause()
-        closeCamera()
-    }
-
     override fun onResume() {
         super.onResume()
         if (textureView.isAvailable) {
             // 버튼 클릭 시 카메라를 열도록 설정되었으므로, onResume에서는 아무 작업도 하지 않음
         }
         resetCameraSequence()
-        binding.startButton.visibility = View.VISIBLE
-        binding.nextButton.visibility = View.INVISIBLE
+        _binding?.startButton?.visibility = View.VISIBLE
+        _binding?.nextButton?.visibility = View.INVISIBLE
     }
 
     private fun resetCameraSequence() {
         Log.d("HomeFragment", "Resetting camera sequence")
         currentCaptureIndex = 0
-        capturedImage1.visibility = View.GONE
-        capturedImage2.visibility = View.GONE
-        capturedImage3.visibility = View.GONE
-        capturedImage4.visibility = View.GONE
-
-        textureView.visibility = View.VISIBLE
+        _binding?.let {
+            it.capturedImage1.visibility = View.GONE
+            it.capturedImage2.visibility = View.GONE
+            it.capturedImage3.visibility = View.GONE
+            it.capturedImage4.visibility = View.GONE
+            textureView.visibility = View.VISIBLE
+        }
     }
 
     private fun takePicture() {
@@ -417,7 +418,7 @@ class HomeFragment : Fragment() {
                         if (currentCaptureIndex < 4) {
                             startNextCapture()
                         } else {
-                            binding.nextButton.visibility = View.VISIBLE
+                            _binding?.nextButton?.visibility = View.VISIBLE
                             closeCamera()
                         }
                     }
@@ -493,25 +494,27 @@ class HomeFragment : Fragment() {
     }
 
     private fun initRecycler() {
-        val indicatorAdapter = IndicatorAdapter(imageUrls.size) { position ->
-            val imageLoader = coil.ImageLoader.Builder(requireContext())
-                .componentRegistry { add(SvgDecoder(requireContext())) }
-                .build()
+        _binding?.let {
+            val indicatorAdapter = IndicatorAdapter(imageUrls.size) { position ->
+                val imageLoader = coil.ImageLoader.Builder(requireContext())
+                    .componentRegistry { add(SvgDecoder(requireContext())) }
+                    .build()
 
-            val imageRequest = ImageRequest.Builder(requireContext())
-                .data(imageUrls[position])
-                .target(
-                    onSuccess = { result ->
-                        val bitmap = (result as BitmapDrawable).bitmap
-                        binding.backgroundImage.setImageBitmap(bitmap)
-                    },
-                )
-                .build()
-            imageLoader.enqueue(imageRequest)
+                val imageRequest = ImageRequest.Builder(requireContext())
+                    .data(imageUrls[position])
+                    .target(
+                        onSuccess = { result ->
+                            val bitmap = (result as BitmapDrawable).bitmap
+                            _binding?.backgroundImage?.setImageBitmap(bitmap)
+                        },
+                    )
+                    .build()
+                imageLoader.enqueue(imageRequest)
+            }
+            it.indicatorRecyclerView.adapter = indicatorAdapter
+            it.indicatorRecyclerView.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+            it.indicatorRecyclerView.visibility = View.INVISIBLE  // RecyclerView를 보이지 않도록 설정
         }
-        binding.indicatorRecyclerView.adapter = indicatorAdapter
-        binding.indicatorRecyclerView.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
-        binding.indicatorRecyclerView.visibility = View.INVISIBLE  // RecyclerView를 보이지 않도록 설정
     }
 
     private fun captureFragment(fragment: Fragment): Bitmap? {
@@ -524,6 +527,7 @@ class HomeFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        handler.removeCallbacksAndMessages(null)  // 핸들러 작업 취소
         _binding = null
     }
 }
