@@ -4,6 +4,8 @@ import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
+import android.content.Context
+import android.content.SharedPreferences
 import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -89,9 +91,16 @@ class DecorationFragment : Fragment(){
     }
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        arguments?.getByteArray("image_bitmap")?.let { byteArray ->
-            val bitmap = BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size)
-            binding.backgroundImage.setImageBitmap(bitmap)
+        val sharedPreferences: SharedPreferences = requireActivity().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val imagePath: String? = sharedPreferences.getString(IMAGE_PATH_KEY, null)
+
+        if (imagePath != null) {
+            val imgFile = File(imagePath)
+            if (imgFile.exists()) {
+                val myBitmap: Bitmap = BitmapFactory.decodeFile(imgFile.absolutePath)
+                val imageView: ImageView = binding.backgroundImage
+                imageView.setImageBitmap(myBitmap)
+            }
         }
         recyclerView = binding.recyclerview
         toggleButton = binding.buttonToggle
@@ -129,7 +138,10 @@ class DecorationFragment : Fragment(){
 
     }
 
-
+    companion object {
+        private const val PREFS_NAME = "my_prefs"
+        private const val IMAGE_PATH_KEY = "image_path"
+    }
     private fun initRecycler() {
         adapter = RecyclerAdapter(imageUrls)
         binding.recyclerview.adapter = adapter
