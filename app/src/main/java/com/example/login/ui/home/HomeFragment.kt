@@ -1,7 +1,9 @@
 package com.example.login.ui.home
 
 import android.Manifest
+import android.content.Context
 import android.content.Context.CAMERA_SERVICE
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -34,6 +36,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import coil.ImageLoader
 import coil.decode.SvgDecoder
 import coil.request.ImageRequest
+import com.example.login.ImageUtil
 import com.example.login.R
 import com.example.login.RetrofitClient
 import com.example.login.databinding.FragmentHomeBinding
@@ -157,22 +160,29 @@ class HomeFragment : Fragment() {
                 binding.nextButton.visibility = View.INVISIBLE
                 binding.startButton.visibility = View.INVISIBLE
                 val bitmap = captureFragment(this@HomeFragment)
-                bitmap?.let {
-                    val stream = ByteArrayOutputStream()
-                    it.compress(Bitmap.CompressFormat.PNG, 100, stream)
-                    val byteArray = stream.toByteArray()
-
-                    val bundle = Bundle().apply {
-                        putByteArray("image_bitmap", byteArray)
-                    }
-
-                    findNavController().navigate(R.id.action_home_to_decoration, bundle)
+                if (bitmap != null) {
+                    saveImageAndPath(requireContext(), bitmap)
                 }
+                findNavController().navigate(R.id.action_home_to_decoration)
             }
             isFirstClick = !isFirstClick
         }
     }
+    companion object {
+        private const val PREFS_NAME = "my_prefs"
+        private const val IMAGE_PATH_KEY = "image_path"
+    }
 
+    private fun saveImageAndPath(context: Context, bitmap: Bitmap) {
+        val imagePath = ImageUtil.saveImageToInternalStorage(context, bitmap, "my_image.png")
+
+        if (imagePath != null) {
+            val sharedPreferences: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val editor = sharedPreferences.edit()
+            editor.putString(IMAGE_PATH_KEY, imagePath)
+            editor.apply()
+        }
+    }
     private fun getFrontFacingCameraId(cameraManager: CameraManager): String? {
         try {
             for (cameraId in cameraManager.cameraIdList) {
