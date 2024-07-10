@@ -4,6 +4,7 @@ import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
+import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
@@ -150,7 +151,9 @@ class DecorationFragment : Fragment(){
             override fun onResponse(call: Call<StickerResponse>, response: Response<StickerResponse>) {
                 if (response.isSuccessful) {
                     response.body()?.let { imagesResponse ->
-                        val urls = imagesResponse.data.stickers.map { "https://b732-223-39-177-253.ngrok-free.app${it.url}" }
+                        val baseUrl = context?.getString(R.string.base_url)
+
+                        val urls = imagesResponse.data.stickers.map { "$baseUrl${it.url}" }
                         Log.d("FetchImage", "$urls")
                         imageUrls.clear()
                         imageUrls.addAll(urls)
@@ -167,6 +170,9 @@ class DecorationFragment : Fragment(){
             }
         })
     }
+    private val stickerPositions = mutableMapOf<Int, Pair<Float, Float>>()
+
+    @SuppressLint("ClickableViewAccessibility")
     private fun addDraggableImageView(imageUrl: String) {
         val imageView = ImageView(requireContext()).apply {
             id = View.generateViewId()
@@ -180,6 +186,13 @@ class DecorationFragment : Fragment(){
         set.connect(imageView.id, ConstraintSet.TOP, binding.rootLayout.id, ConstraintSet.TOP, 60)
         set.connect(imageView.id, ConstraintSet.START, binding.rootLayout.id, ConstraintSet.START, 60)
         set.applyTo(binding.rootLayout)
+
+        // Restore the position if it was moved before
+        stickerPositions[imageView.id]?.let { (x, y) ->
+            imageView.x = x
+            imageView.y = y
+        }
+
         var scaleFactor = 1.0f
         val scaleGestureDetector = ScaleGestureDetector(requireContext(), object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
             override fun onScale(detector: ScaleGestureDetector): Boolean {
@@ -207,10 +220,8 @@ class DecorationFragment : Fragment(){
                             .y(newY)
                             .setDuration(0)
                             .start()
-                        val params = v.layoutParams as ConstraintLayout.LayoutParams
-                        params.leftMargin = newX.toInt()
-                        params.topMargin = newY.toInt()
-                        v.layoutParams = params
+                        // Save the new position
+                        stickerPositions[v.id] = Pair(newX, newY)
                     }
                 }
                 else -> return@setOnTouchListener false
@@ -218,6 +229,7 @@ class DecorationFragment : Fragment(){
             true
         }
     }
+
     private fun Int.dpToPx(): Int {
         return (this * resources.displayMetrics.density).toInt()
     }
