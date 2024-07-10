@@ -23,9 +23,29 @@ class IndicatorAdapter(
     }
 
     override fun onBindViewHolder(holder: IndicatorViewHolder, position: Int) {
+        val backgroundResource = when (position) {
+            0 -> R.drawable.red_circle_selected
+            1 -> R.drawable.green_circle_selected
+            2 -> R.drawable.khaki_circle_selected
+            3 -> R.drawable.blue_circle_selected
+            4 -> R.drawable.pink_circle_selected
+            5 -> R.drawable.white_circle_selected
+            6 -> R.drawable.black_circle_selected
+            else -> R.drawable.white_circle_selected
+        }
+        val unbackgroundResource = when (position) {
+            0 -> R.drawable.red_circle_unselected
+            1 -> R.drawable.green_circle_unselected
+            2 -> R.drawable.khaki_circle_unselected
+            3 -> R.drawable.blue_circle_unselected
+            4 -> R.drawable.pink_circle_unselected
+            5 -> R.drawable.white_circle_unselected
+            6 -> R.drawable.black_circle_unselected
+            else -> R.drawable.white_circle_unselected
+        }
         holder.circleView.setBackgroundResource(
-            if (position == selectedPosition) R.drawable.circle_selected
-            else R.drawable.circle_unselected
+            if (position == selectedPosition) backgroundResource
+            else unbackgroundResource
         )
         holder.circleView.setOnClickListener {
             itemClickListener(position)

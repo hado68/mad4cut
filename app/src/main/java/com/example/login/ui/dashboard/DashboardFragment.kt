@@ -33,12 +33,14 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
+import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.request.target.CustomTarget
 import com.example.login.R
 import com.example.login.RetrofitClient
 import com.example.login.databinding.FragmentDashboardBinding
 import com.example.login.interfaces.ApiService
 import com.example.login.models.ImagesResponse
+import com.example.login.ui.notifications.StickerAdapter
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
@@ -78,6 +80,9 @@ class DashboardFragment : Fragment() {
     ): View {
         _binding = FragmentDashboardBinding.inflate(inflater, container, false)
         val root: View = binding.root
+        adapter = RecyclerAdapter(imageUrls)
+        binding.recyclerview.adapter = adapter
+        binding.recyclerview.layoutManager = GridLayoutManager(requireContext(), 2)
         fetchImageUrls()
 
         initRecycler()
@@ -95,10 +100,7 @@ class DashboardFragment : Fragment() {
                         val baseUrl = context?.getString(R.string.base_url)
                         val urls = imagesResponse.data.images.map { "${baseUrl}${it.url}" }
                         Log.d("FetchImage", "$urls")
-                        imageUrls.clear()
-                        imageUrls.addAll(urls)
-                        adapter.notifyDataSetChanged()
-                        initRecycler()
+                        adapter.updateData(urls)
                     }
                 } else {
                     Log.e("ImageList", "Failed to fetch image URLs")
@@ -115,7 +117,6 @@ class DashboardFragment : Fragment() {
     private fun initRecycler() {
         adapter = RecyclerAdapter(imageUrls)
         binding.recyclerview.adapter = adapter
-        imageUrls.add("https://search.pstatic.net/common/?src=http%3A%2F%2Fblogfiles.naver.net%2F20110812_241%2F3810734v_1313077974225mhbP2_PNG%2F413PX-1.PNG&type=a340")
         binding.recyclerview.layoutManager = GridLayoutManager(requireContext(),2)
         adapter.setItemClickListener(object : RecyclerAdapter.onItemClickListener {
             override fun onItemClick(position: Int) {
@@ -152,6 +153,7 @@ class DashboardFragment : Fragment() {
         Glide.with(requireContext())
             .asBitmap()
             .load(imageUrl)
+            .diskCacheStrategy(DiskCacheStrategy.ALL)
             .into(object : CustomTarget<Bitmap>() {
                 override fun onResourceReady(resource: Bitmap, transition: Transition<in Bitmap>?) {
                     saveImageToGallery(resource)

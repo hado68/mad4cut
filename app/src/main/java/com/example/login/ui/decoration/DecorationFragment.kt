@@ -125,7 +125,7 @@ class DecorationFragment : Fragment(){
             toggleButton.visibility = View.INVISIBLE
             recyclerView.visibility = View.INVISIBLE
             binding.download.visibility = View.INVISIBLE
-            val bitmap = captureFragment(this)
+            val bitmap = binding.backgroundImage.toBitmap()
             bitmap?.let {
                 val file = bitmapToFile(it)
                 uploadFile(file)
@@ -136,6 +136,12 @@ class DecorationFragment : Fragment(){
             binding.download.visibility = View.VISIBLE
         }
 
+    }
+    fun View.toBitmap(): Bitmap {
+        val bitmap = Bitmap.createBitmap(this.width, this.height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        this.draw(canvas)
+        return bitmap
     }
 
     companion object {
@@ -354,11 +360,5 @@ class DecorationFragment : Fragment(){
 
         return imageFile
     }
-    private fun captureFragment(fragment: Fragment): Bitmap? {
-        val view = fragment.view ?: return null
-        val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
-        view.draw(canvas)
-        return bitmap
-    }
+
 }

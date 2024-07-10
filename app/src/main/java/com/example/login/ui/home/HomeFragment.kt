@@ -35,6 +35,7 @@ import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import coil.ImageLoader
 import coil.decode.SvgDecoder
+import coil.request.CachePolicy
 import coil.request.ImageRequest
 import com.example.login.ImageUtil
 import com.example.login.R
@@ -117,23 +118,6 @@ class HomeFragment : Fragment() {
         timerTextView = binding.timerTextView
 
         binding.startButton.setOnClickListener {
-            val imageLoader = ImageLoader.Builder(requireContext())
-                .componentRegistry { add(SvgDecoder(requireContext()))
-                }
-                .build()
-
-            val baseUrl = context?.getString(R.string.base_url)
-
-            val imageRequest = ImageRequest.Builder(requireContext())
-                .data("$baseUrl/frames/2.svg")
-                .target(
-                    onSuccess = { result ->
-                        val bitmap = (result as BitmapDrawable).bitmap
-                        _binding?.backgroundImage?.setImageBitmap(bitmap)
-                    },
-                )
-                .build()
-            imageLoader.enqueue(imageRequest)
             Log.d("HomeFragment", "Start button clicked")
             _binding?.let {
                 it.nextButton.visibility = View.INVISIBLE
@@ -148,6 +132,25 @@ class HomeFragment : Fragment() {
                     Manifest.permission.WRITE_EXTERNAL_STORAGE
                 ), REQUEST_PERMISSIONS)
             } else {
+                val imageLoader = ImageLoader.Builder(requireContext())
+                    .componentRegistry { add(SvgDecoder(requireContext()))
+                    }
+                    .diskCachePolicy(CachePolicy.ENABLED) // 디스크 캐싱 활성화
+                    .memoryCachePolicy(CachePolicy.ENABLED) // 메모리 캐싱 활성화
+                    .build()
+
+                val baseUrl = context?.getString(R.string.base_url)
+
+                val imageRequest = ImageRequest.Builder(requireContext())
+                    .data("$baseUrl/frames/1.svg")
+                    .target(
+                        onSuccess = { result ->
+                            val bitmap = (result as BitmapDrawable).bitmap
+                            _binding?.backgroundImage?.setImageBitmap(bitmap)
+                        },
+                    )
+                    .build()
+                imageLoader.enqueue(imageRequest)
                 resetCameraSequence()
                 openCamera()
             }
@@ -164,7 +167,7 @@ class HomeFragment : Fragment() {
                     it.nextButton.visibility = View.INVISIBLE
                     it.startButton.visibility = View.INVISIBLE
                 }
-                val bitmap = captureFragment(this@HomeFragment)
+                val bitmap = binding.backgroundImage.toBitmap()
                 if (bitmap != null) {
                     saveImageAndPath(requireContext(), bitmap)
                 }
@@ -177,7 +180,12 @@ class HomeFragment : Fragment() {
         private const val PREFS_NAME = "my_prefs"
         private const val IMAGE_PATH_KEY = "image_path"
     }
-
+    fun View.toBitmap(): Bitmap {
+        val bitmap = Bitmap.createBitmap(this.width, this.height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        this.draw(canvas)
+        return bitmap
+    }
     private fun saveImageAndPath(context: Context, bitmap: Bitmap) {
         val imagePath = ImageUtil.saveImageToInternalStorage(context, bitmap, "my_image.png")
 
