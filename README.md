@@ -70,8 +70,7 @@ https://github.com/user-attachments/assets/15071bf0-1730-4543-a3a3-dccfd6bb3a6f
 <img width="523" alt="Untitled" src="https://github.com/user-attachments/assets/afaf1e0f-11b1-4994-be87-bcfd6ce3fb35" />
 
     
-![Untitled](https://github.com/user-attachments/assets/faccb1cf-f58c-4518-9c0d-6ab38dc9e182)
-
+![Untitled](https://github.com/user-attachments/assets/28b14fbc-f9d7-483c-986e-421741f6939b)
 
     
 - 위 사진은 현재 `memberId`가 2밖에 없지만, 다른 `memberId`도 생긴다면, 정확히 개인의 갤러리를 가질 수 있습니다.
@@ -120,7 +119,13 @@ https://github.com/user-attachments/assets/276111dc-096e-4a3b-8b7d-34ec24c351c4
         - 스티커 `recyclerView`를 토글버튼을 이용하여 숨기기 및 펼치기 기능
         - 이후 저장하기 버튼을 누른다면 첫번째에 나왔던 `ImageRepository`에 저장됩니다.
 
-![Screenshot_20240710-194321](https://github.com/user-attachments/assets/5011480b-25c4-44d6-a84c-1653c04e71d8) ![Screenshot_20240710-194330](https://github.com/user-attachments/assets/68770443-6b37-4ff0-aeda-cd5274a28104) ![Screenshot_20240710-194339](https://github.com/user-attachments/assets/a4e03c48-e328-431c-bca3-f879b0290cb5)
+  <img src="https://github.com/user-attachments/assets/5011480b-25c4-44d6-a84c-1653c04e71d8" alt="Screenshot 1" width="300"/>
+  <img src="https://github.com/user-attachments/assets/68770443-6b37-4ff0-aeda-cd5274a28104" alt="Screenshot 2" width="300"/>
+  <img src="https://github.com/user-attachments/assets/a4e03c48-e328-431c-bca3-f879b0290cb5" alt="Screenshot 3" width="300"/>
+
+  
+  <img src="https://github.com/user-attachments/assets/ddffd692-d844-4350-b8d6-55852495add3" alt="Screenshot 4" width="400"/>
+  <img src="https://github.com/user-attachments/assets/bce8a6db-3e6d-4479-80c2-5dcc8d9decab" alt="Screenshot 5" width="400"/>
 
 
 
