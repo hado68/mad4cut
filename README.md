@@ -120,12 +120,9 @@ https://github.com/user-attachments/assets/276111dc-096e-4a3b-8b7d-34ec24c351c4
         - 스티커 `recyclerView`를 토글버튼을 이용하여 숨기기 및 펼치기 기능
         - 이후 저장하기 버튼을 누른다면 첫번째에 나왔던 `ImageRepository`에 저장됩니다.
 
-![Screenshot_20240710-194321](https://github.com/user-attachments/assets/0e5bf0b4-1a08-45ea-b232-cd640cdd61fd)
-![Screenshot_20240710-194330](https://github.com/user-attachments/assets/4744a406-f871-4cd4-9b88-1beaaddd017d)
+![Screenshot_20240710-194321](https://github.com/user-attachments/assets/5011480b-25c4-44d6-a84c-1653c04e71d8) ![Screenshot_20240710-194330](https://github.com/user-attachments/assets/68770443-6b37-4ff0-aeda-cd5274a28104) ![Screenshot_20240710-194339](https://github.com/user-attachments/assets/a4e03c48-e328-431c-bca3-f879b0290cb5)
 
-![Screenshot_20240710-194339](https://github.com/user-attachments/assets/5cb2c4c7-4f6f-4f4f-8128-9c1e1f352b5f)
-![Screenshot_20240710-194353](https://github.com/user-attachments/assets/197f8360-8ca3-424e-8658-215db4e52f15)
-![Screenshot_20240710-194349](https://github.com/user-attachments/assets/69e20c68-e95b-4d34-a754-b10687808325)
+
 
 
 
